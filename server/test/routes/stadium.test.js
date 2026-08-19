@@ -366,6 +366,65 @@ describe('stadium routes', () => {
 
       expect(result.attendance[0].stands.north.percentage).toBe(100)
     })
+
+    it('measures against the stand size recorded with the game, not against todays', async () => {
+      // North was 4.000 seats and sold out on the day; it has since grown to
+      // 10.000. Without the recorded size the finished expansion would rewrite
+      // that game from 100% down to 40%.
+      const stadium = testData.stadium({ north_stand_size: 10000 })
+      getStadiumOfCurrentUser.mockResolvedValue(stadium)
+      const team = testData.team()
+      query.mockResolvedValueOnce([team]).mockResolvedValueOnce([
+        gameRow({ stadiumDetails: { northGuests: 4000, northSize: 4000 } })
+      ])
+
+      const req = createMockRequest()
+      const result = await handlers.getStadiumAttendance(req)
+
+      expect(result.attendance[0].stands.north.size).toBe(4000)
+      expect(result.attendance[0].stands.north.percentage).toBe(100)
+    })
+
+    it('reports a stand that was closed for construction instead of an empty one', async () => {
+      const stadium = testData.stadium({ north_stand_size: 5000 })
+      getStadiumOfCurrentUser.mockResolvedValue(stadium)
+      const team = testData.team()
+      query.mockResolvedValueOnce([team]).mockResolvedValueOnce([
+        gameRow({
+          stadiumDetails: {
+            northGuests: 0,
+            northSize: 5000,
+            northUnderConstruction: true,
+            southGuests: 2500,
+            southSize: 5000
+          }
+        })
+      ])
+
+      const req = createMockRequest()
+      const result = await handlers.getStadiumAttendance(req)
+
+      expect(result.attendance[0].stands.north.underConstruction).toBe(true)
+      expect(result.attendance[0].stands.north.percentage).toBe(0)
+      // The open stands are unaffected.
+      expect(result.attendance[0].stands.south.underConstruction).toBe(false)
+      expect(result.attendance[0].stands.south.percentage).toBe(50)
+    })
+
+    it('does not divide by zero for a stand that was never built', async () => {
+      const stadium = testData.stadium({ corner_ne_stand_size: 0 })
+      getStadiumOfCurrentUser.mockResolvedValue(stadium)
+      const team = testData.team()
+      query.mockResolvedValueOnce([team]).mockResolvedValueOnce([
+        gameRow({ stadiumDetails: { corner_neGuests: 0, corner_neSize: 0 } })
+      ])
+
+      const req = createMockRequest()
+      const result = await handlers.getStadiumAttendance(req)
+
+      expect(result.attendance[0].stands.corner_ne.percentage).toBe(0)
+      expect(result.attendance[0].stands.corner_ne.size).toBe(0)
+    })
   })
 
   describe('getConstructionHistory', () => {

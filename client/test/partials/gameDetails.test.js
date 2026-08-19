@@ -121,3 +121,50 @@ describe('GameDetails collapsible cards', () => {
     expect(selectors).toEqual(['.collapsible-card:not(.game-report) > .collapsible-card-toggle'])
   })
 })
+
+describe('GameDetails stadium card', () => {
+  it('measures the fill rate against the seats that were on sale', () => {
+    // Half the stadium was a building site that day: 1.500 guests in the 3.000
+    // seats that were open is 50%, not the 25% the total capacity suggests.
+    const html = createGameDetails({
+      stadiumDetails: {
+        northGuests: 1500,
+        totalCapacity: 6000,
+        operationalCapacity: 3000,
+        totalEarnings: 22500
+      }
+    }).template
+
+    expect(html).toContain('>50%<')
+    expect(html).not.toContain('>25%<')
+    expect(html).toContain('of 3,000 open seats')
+  })
+
+  it('does not mention open seats when the whole stadium was open', () => {
+    const html = createGameDetails({
+      stadiumDetails: {
+        northGuests: 1500,
+        totalCapacity: 3000,
+        operationalCapacity: 3000,
+        totalEarnings: 22500
+      }
+    }).template
+
+    expect(html).toContain('>50%<')
+    expect(html).not.toContain('open seats')
+  })
+
+  it('falls back to the total capacity for games played before it was recorded', () => {
+    const html = createGameDetails({
+      stadiumDetails: { northGuests: 1500, totalCapacity: 3000, totalEarnings: 22500 }
+    }).template
+
+    expect(html).toContain('>50%<')
+    expect(html).not.toContain('open seats')
+  })
+
+  it('shows a dash instead of dividing by zero without a stadium', () => {
+    const html = createGameDetails({ stadiumDetails: {} }).template
+    expect(html).toContain('>-%<')
+  })
+})

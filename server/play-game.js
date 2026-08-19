@@ -170,6 +170,12 @@ export function selectInjuryType () {
  * @property {number} [corner_seEarnings]
  * @property {number} [corner_swGuests]
  * @property {number} [corner_swEarnings]
+ * @property {number} [totalCapacity] - All seats, including stands under construction.
+ * @property {number} [operationalCapacity] - Seats that were on sale; the denominator of the fill rate.
+ * @property {number} [totalAttendance]
+ * @property {number} [totalEarnings]
+ * @property {number} [northSize] - Stand size at the time of the game (same for every stand).
+ * @property {boolean} [northUnderConstruction] - Stand was closed that day (same for every stand).
  */
 
 /**

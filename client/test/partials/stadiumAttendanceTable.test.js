@@ -25,6 +25,7 @@ vi.mock('../../i18n/index.js', () => ({
       'cup.roundOf16': 'Round of 16',
       'cup.round': 'Round',
       'cup.roundNumber': `Round ${params.number ?? ''}`,
+      'stadium.attendanceUnderConstruction': 'Closed for construction',
       'common.prev': 'Previous',
       'common.next': 'Next'
     }
@@ -111,6 +112,28 @@ describe('StadiumAttendanceTable', () => {
     expect(html).toContain('80%')
     expect(html).not.toContain('>4,000 /')
     expect(html).toContain('title="4,000 / 5,000"')
+  })
+
+  it('marks a stand that was closed for construction instead of printing 0%', () => {
+    // 0% would sit in the same column as a stand nobody wanted to visit, while
+    // the stand in fact sold no tickets at all.
+    const row = makeRow()
+    row.stands.north = { guests: 0, size: 5000, percentage: 0, underConstruction: true }
+    const html = new StadiumAttendanceTable([row])._renderTable()
+
+    expect(html).toContain('fa-wrench')
+    expect(html).toContain('title="Closed for construction"')
+    // The open stands keep their percentage.
+    expect(html).toContain('50%')
+  })
+
+  it('shows a plain 0% for an open stand nobody visited', () => {
+    const row = makeRow()
+    row.stands.north = { guests: 0, size: 5000, percentage: 0, underConstruction: false }
+    const html = new StadiumAttendanceTable([row])._renderTable()
+
+    expect(html).not.toContain('fa-wrench')
+    expect(html).toContain('title="0 / 5,000"')
   })
 
   it('shows the league match day and the opponent short name', () => {

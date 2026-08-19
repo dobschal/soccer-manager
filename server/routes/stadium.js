@@ -229,11 +229,19 @@ export default {
       }
       for (const stand of stands) {
         const guests = sd[stand + 'Guests'] || 0
-        const size = stadium[stand + '_stand_size'] || 1
-        // The stand sizes at the time of the game are not recorded, so an
-        // already-expanded stand would otherwise report more than 100%.
-        const percentage = Math.min(100, Math.round((guests / size) * 100))
-        row.stands[stand] = { guests, size, percentage }
+        // A game records the stand size it was played with, so finishing an
+        // expansion no longer rewrites the fill rate of every older game.
+        // Games from before that fall back to today's size, which can only be
+        // larger (stands cannot shrink) — hence the cap at 100%.
+        const recordedSize = sd[stand + 'Size']
+        const size = (recordedSize ?? stadium[stand + '_stand_size']) || 0
+        const underConstruction = Boolean(sd[stand + 'UnderConstruction'])
+        // A stand under construction is closed, not empty. Reporting 0% would
+        // read as "nobody came" next to the open stands.
+        const percentage = (underConstruction || size <= 0)
+          ? 0
+          : Math.min(100, Math.round((guests / size) * 100))
+        row.stands[stand] = { guests, size, percentage, underConstruction }
       }
       return row
     })

@@ -8,7 +8,7 @@ import { kickoff, playGameStep } from '../play-game.js'
 import { getCaptainStrengthMultiplier } from '../helper/captainHelper.js'
 import { getSquadAgeStrengthMultiplier } from '../helper/squadAgeHelper.js'
 import { autoFillLineup, trimExcessLineup } from '../helper/lineupHelper.js'
-import { calculateHomeAttendanceBonus } from '../helper/stadiumHelper.js'
+import { calculateStadiumAttendance } from '../helper/stadiumHelper.js'
 
 export default {
   /**
@@ -410,53 +410,9 @@ async function _getFriendlyStadiumEarnings (teamA, teamB, strengthTeamA, strengt
     return {}
   }
 
-  const stands = ['north', 'south', 'west', 'east', 'corner_ne', 'corner_nw', 'corner_se', 'corner_sw']
-  const details = {}
-  let totalEarnings = 0
-  let totalCapacity = 0
-  let operationalCapacity = 0
-  let totalAttendance = 0
-
-  for (const stand of stands) {
-    const size = stadium[stand + '_stand_size'] || 0
-    totalCapacity += size
-
-    const constructionEndDay = stadium[`${stand}_construction_end_game_day`]
-    if (constructionEndDay != null) {
-      details[stand + 'Guests'] = 0
-      details[stand + 'Earnings'] = 0
-      details[stand + 'UnderConstruction'] = true
-      continue
-    }
-
-    operationalCapacity += size
-
-    const price = stadium[stand + '_stand_price'] || 0
-
-    if (price <= 0 || size <= 0) {
-      details[stand + 'Guests'] = 0
-      details[stand + 'Earnings'] = 0
-      continue
-    }
-
-    const roofFactor = stadium[stand + '_stand_roof'] ? 1.2 : 1
-    const priceFactor = (15 / price) ** 2
-    // Friendly matches have HALF the normal attendance
-    const amountOfGuests = Math.floor(Math.min(size, strengthFactor * priceFactor * roofFactor * 0.5))
-    details[stand + 'Guests'] = amountOfGuests
-    totalAttendance += amountOfGuests
-    const earnings = amountOfGuests * price
-    details[stand + 'Earnings'] = earnings
-    totalEarnings += earnings
-  }
-
-  details.totalCapacity = totalCapacity
-  details.totalAttendance = totalAttendance
-  details.totalEarnings = totalEarnings
-
-  const homeBonus = calculateHomeAttendanceBonus(totalAttendance, operationalCapacity)
-  details.homeBonusPct = homeBonus.bonusPct
-  details.homeBonusMultiplier = homeBonus.multiplier
+  // Friendly matches draw half the normal crowd (TA-STD-06).
+  const details = calculateStadiumAttendance(stadium, strengthFactor, 0.5)
+  let totalEarnings = details.totalEarnings
 
   if (isNaN(totalEarnings)) {
     console.error(`NaN earnings detected for team ${teamA.id}`)

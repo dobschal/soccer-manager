@@ -141,12 +141,21 @@ function renderEventTicker (details, players) {
 
 /**
  * Render the stadium attendance card.
+ *
+ * The fill rate is measured against the seats that were actually on sale, not
+ * against every seat the stadium owns: a stand under construction is closed and
+ * booked with 0 guests, so counting its seats would report a well-filled
+ * stadium as half empty for the whole build. This matches the capacity the game
+ * engine uses for the home bonus.
+ *
  * @param {number} guests
- * @param {number} totalCapacity
+ * @param {number} openCapacity - Seats on sale (`operationalCapacity`).
+ * @param {number} totalCapacity - All seats, for the "of X seats" hint.
  * @param {number} totalEarnings
  * @returns {string}
  */
-function renderStadiumCard (guests, totalCapacity, totalEarnings) {
+function renderStadiumCard (guests, openCapacity, totalCapacity, totalEarnings) {
+  const closedSeats = Math.max(0, totalCapacity - openCapacity)
   return renderCollapsibleCard({
     title: 'Stadium',
     icon: 'fa-ticket',
@@ -158,8 +167,11 @@ function renderStadiumCard (guests, totalCapacity, totalEarnings) {
           <div class="text-muted small">Guests</div>
         </div>
         <div class="col-4">
-          <div class="fs-4 fw-bold">${totalCapacity ? Math.round(guests / totalCapacity * 100) : '-'}%</div>
+          <div class="fs-4 fw-bold">${openCapacity ? Math.round(guests / openCapacity * 100) : '-'}%</div>
           <div class="text-muted small">Capacity</div>
+          ${closedSeats > 0
+    ? `<div class="text-muted small" title="${closedSeats.toLocaleString()} seats were closed for construction">of ${openCapacity.toLocaleString()} open seats</div>`
+    : ''}
         </div>
         <div class="col-4">
           <div class="fs-4 fw-bold">${totalEarnings.toLocaleString()} &euro;</div>
@@ -241,6 +253,9 @@ export class GameDetails extends UIElement {
       ? (stadium.north_stand_size || 0) + (stadium.south_stand_size || 0) + (stadium.east_stand_size || 0) + (stadium.west_stand_size || 0) +
         (stadium.corner_ne_stand_size || 0) + (stadium.corner_nw_stand_size || 0) + (stadium.corner_se_stand_size || 0) + (stadium.corner_sw_stand_size || 0)
       : 0)
+    // Games from before the closed-stand fix have no `operationalCapacity`; for
+    // them the total is the best available denominator.
+    const openCapacity = sd.operationalCapacity ?? totalCapacity
 
     let ballControllA = 0
     let ballControllB = 0
@@ -354,7 +369,7 @@ export class GameDetails extends UIElement {
         ${renderSquadList(details.playerTeamA, team1.name, (details.substitutions || []).filter(s => s.teamIndex === 0))}
         ${renderSquadList(details.playerTeamB, team2.name, (details.substitutions || []).filter(s => s.teamIndex === 1))}
 
-        ${renderStadiumCard(guests, totalCapacity, totalEarnings)}
+        ${renderStadiumCard(guests, openCapacity, totalCapacity, totalEarnings)}
 
         <p class="text-muted small mt-3 mb-0"><strong>IG</strong> (In-Game Level) is the effective strength of a player during the match. It is based on the base level and influenced by freshness, captain choice, star player status and motivating speeches.</p>
       </div>

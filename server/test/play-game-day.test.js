@@ -1,4 +1,9 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
+
+// `stadiumHelper` reaches for the connection pool at import time.
+vi.mock('../lib/database.js', () => ({ query: vi.fn() }))
+
+import { calculateStadiumAttendance } from '../helper/stadiumHelper.js'
 
 // Test play style modifiers and card logic
 describe('play-game-day play style', () => {
@@ -352,47 +357,19 @@ describe('play-game-day play style', () => {
 
 describe('stadium ticket earnings', () => {
   /**
-   * Simulates the stadium earnings calculation logic from _giveStadiumTicketEarnings
+   * The real calculation `_giveStadiumTicketEarnings` runs, called with the two
+   * team strengths instead of the derived factor. Reimplementing it here let it
+   * drift from production code, which is how the closed-stand fill rate went
+   * unnoticed — so this now goes through the shipped helper.
+   *
+   * @param {object} stadium
+   * @param {number} strengthTeamA
+   * @param {number} strengthTeamB
+   * @returns {object}
    */
   function calculateStadiumDetails (stadium, strengthTeamA, strengthTeamB) {
     const strengthFactor = ((strengthTeamA || 0) * (strengthTeamB || 0)) / 80
-    const stands = ['north', 'south', 'west', 'east', 'corner_ne', 'corner_nw', 'corner_se', 'corner_sw']
-    const details = {}
-    let totalEarnings = 0
-    let totalCapacity = 0
-
-    for (const stand of stands) {
-      const size = stadium[stand + '_stand_size'] || 0
-      totalCapacity += size
-
-      const constructionEndDay = stadium[`${stand}_construction_end_game_day`]
-      if (constructionEndDay != null) {
-        details[stand + 'Guests'] = 0
-        details[stand + 'Earnings'] = 0
-        details[stand + 'UnderConstruction'] = true
-        continue
-      }
-
-      const price = stadium[stand + '_stand_price'] || 0
-
-      if (price <= 0 || size <= 0) {
-        details[stand + 'Guests'] = 0
-        details[stand + 'Earnings'] = 0
-        continue
-      }
-
-      const roofFactor = stadium[stand + '_stand_roof'] ? 1.2 : 1
-      const priceFactor = (15 / price) ** 2
-      const amountOfGuests = Math.floor(Math.min(size, strengthFactor * priceFactor * roofFactor))
-      details[stand + 'Guests'] = amountOfGuests
-      const earnings = amountOfGuests * price
-      details[stand + 'Earnings'] = earnings
-      totalEarnings += earnings
-    }
-
-    details.totalCapacity = totalCapacity
-    details.totalEarnings = totalEarnings
-    return details
+    return calculateStadiumAttendance(stadium, strengthFactor)
   }
 
   describe('totalCapacity calculation', () => {

@@ -91,6 +91,82 @@ export function calculateHomeAttendanceBonus (totalAttendance, totalCapacity) {
 }
 
 /**
+ * Every stand of a stadium, in the order they are stored.
+ * @type {string[]}
+ */
+export const STANDS = ['north', 'south', 'west', 'east', 'corner_ne', 'corner_nw', 'corner_se', 'corner_sw']
+
+/**
+ * Ticket demand, attendance and earnings for one home game.
+ *
+ * Demand per stand is `strengthFactor * priceFactor * roofFactor`, capped by
+ * the stand's size (TA-STD-01..04). A stand under construction is closed: it
+ * sells no tickets and its seats do not count towards the fill rate — counting
+ * them would report a well-filled stadium as half empty for the whole build.
+ *
+ * The returned details are persisted with the game, so everything the UI needs
+ * to explain a number later is written down here: the size of every stand on
+ * the day (a later expansion must not rewrite the fill rate of past games), the
+ * closed-for-construction flag, and both capacities.
+ *
+ * @param {StadiumType} stadium
+ * @param {number} strengthFactor - `(strengthTeamA * strengthTeamB) / 80`
+ * @param {number} [attendanceFactor] - Demand multiplier; 0.5 for friendlies (TA-STD-06).
+ * @returns {object} stadium details to store on the game
+ */
+export function calculateStadiumAttendance (stadium, strengthFactor, attendanceFactor = 1) {
+  const details = {}
+  let totalEarnings = 0
+  let totalCapacity = 0
+  let operationalCapacity = 0
+  let totalAttendance = 0
+
+  for (const stand of STANDS) {
+    const size = stadium[stand + '_stand_size'] || 0
+    totalCapacity += size
+    details[stand + 'Size'] = size
+
+    // Check for a truthy value so a missing column reads as "not building".
+    if (stadium[`${stand}_construction_end_game_day`] != null) {
+      details[stand + 'Guests'] = 0
+      details[stand + 'Earnings'] = 0
+      details[stand + 'UnderConstruction'] = true
+      continue
+    }
+
+    operationalCapacity += size
+
+    const price = stadium[stand + '_stand_price'] || 0
+    // A free (or unbuilt) stand sells nothing — and guards the division below.
+    if (price <= 0 || size <= 0) {
+      details[stand + 'Guests'] = 0
+      details[stand + 'Earnings'] = 0
+      continue
+    }
+
+    const roofFactor = stadium[stand + '_stand_roof'] ? 1.2 : 1
+    const priceFactor = (15 / price) ** 2
+    const amountOfGuests = Math.floor(Math.min(size, strengthFactor * priceFactor * roofFactor * attendanceFactor))
+    details[stand + 'Guests'] = amountOfGuests
+    totalAttendance += amountOfGuests
+    const earnings = amountOfGuests * price
+    details[stand + 'Earnings'] = earnings
+    totalEarnings += earnings
+  }
+
+  details.totalCapacity = totalCapacity
+  details.operationalCapacity = operationalCapacity
+  details.totalAttendance = totalAttendance
+  details.totalEarnings = totalEarnings
+
+  const homeBonus = calculateHomeAttendanceBonus(totalAttendance, operationalCapacity)
+  details.homeBonusPct = homeBonus.bonusPct
+  details.homeBonusMultiplier = homeBonus.multiplier
+
+  return details
+}
+
+/**
  * Calculates construction time in gamedays for a stand expansion
  * @param {number} currentSize - Current stand size
  * @param {number} targetSize - Target stand size

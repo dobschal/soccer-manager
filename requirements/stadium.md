@@ -12,6 +12,7 @@ Jedes Team besitzt ein Stadion mit vier Tribuenen (Nord, Sued, Ost, West), die i
 - **US-STD-04**: Als Spieler sehe ich die Baukosten und Bauzeit vor dem Start einer Erweiterung.
 - **US-STD-05**: Als Spieler sehe ich den Baufortschritt mit verbleibenden Spieltagen.
 - **US-STD-06**: Als Spieler sehe ich fuer meine vergangenen Heimspiele die prozentuale Auslastung pro Tribuene, jeweils mit Liga-Spieltag bzw. Pokalrunde und dem gegnerischen Team (Wappen + Kurzname).
+- **US-STD-10**: Als Spieler sehe ich waehrend eines Ausbaus eine ehrliche Auslastung: gesperrte Tribuenen sind als solche gekennzeichnet und ziehen meine Prozentzahl nicht nach unten.
 - **US-STD-07**: Als Spieler sehe ich die Bau-Historie meines Stadions; bei laufenden Bauten steht dort, in wie vielen Spieltagen die Tribuene fertig ist.
 - **US-STD-08**: Als Spieler kann ich die Zuschauer-Tabelle ueber drei Schalter nach Liga-Spielen, Pokal-Spielen und Friendlies filtern und blaettere in Seiten zu 5 Spielen.
 - **US-STD-09**: Als Spieler oeffne ich per Klick auf eine Zeile der Zuschauer-Tabelle die Spieldetails des jeweiligen Heimspiels.
@@ -36,7 +37,15 @@ Jedes Team besitzt ein Stadion mit vier Tribuenen (Nord, Sued, Ost, West), die i
 - **TA-STD-04**: Dachfaktor: 1.2x Bonus wenn Dach vorhanden, sonst 1.0.
 - **TA-STD-05**: Einnahmen pro Tribuene: `zuschauer * ticketPreis`.
 - **TA-STD-06**: Freundschaftsspiele: 50% reduzierte Zuschauer.
-- **TA-STD-07**: Tribuene im Bau: 0 Zuschauer und 0 Einnahmen.
+- **TA-STD-07**: Tribuene im Bau: 0 Zuschauer und 0 Einnahmen. Ihre Plaetze zaehlen **nicht** zur
+  operativen Kapazitaet - eine gesperrte Tribuene ist geschlossen, nicht leer.
+- **TA-STD-07a**: Die Berechnung liegt in `calculateStadiumAttendance()` (`helper/stadiumHelper.js`) und wird von
+  Liga-/Pokalspielen (`play-game-day.js`) und Friendlies (`routes/friendly.js`) gemeinsam genutzt - vorher
+  stand sie zweimal da und ist auseinandergelaufen.
+- **TA-STD-07b**: Die Funktion schreibt pro Spiel in `stadiumDetails`: `{stand}Guests`, `{stand}Earnings`,
+  `{stand}Size` (Tribuenengroesse am Spieltag), `{stand}UnderConstruction`, `totalCapacity` (alle Plaetze),
+  `operationalCapacity` (verkaufbare Plaetze), `totalAttendance`, `totalEarnings`, `homeBonusPct`,
+  `homeBonusMultiplier`.
 
 ### Heim-Bonus (Zuschauer-Effekt auf Team-Staerke)
 
@@ -141,13 +150,28 @@ Jedes Team besitzt ein Stadion mit vier Tribuenen (Nord, Sued, Ost, West), die i
 - **TA-STD-28**: Bau-Historie-Tabelle. Laufende Bauten zeigen in der Spalte "Abgeschlossen" ein Badge
   "Fertig in X Tagen" (bzw. "Fertig in 1 Tag" / "Fertig heute") aus `constructionInfo.<stand>.remainingGameDays`;
   ist die Restzeit unbekannt, bleibt es beim "Im Bau"-Badge.
-- **TA-STD-45**: Die Tribuenengroessen zum Zeitpunkt eines Spiels werden nicht gespeichert. Die Auslastung
-  wird daher gegen die **heutige** Groesse gerechnet und bei 100% gekappt, damit eine inzwischen
-  abgerissene/verkleinerte Tribuene keine Werte ueber 100% zeigt.
+- **TA-STD-45**: Die Auslastung eines Spiels wird gegen `{stand}Size` gerechnet - die Tribuenengroesse **am
+  Spieltag**. Vorher wurde gegen die heutige Groesse gerechnet, wodurch ein fertiger Ausbau die Auslastung
+  aller vergangenen Spiele rueckwirkend gesenkt hat (eine damals ausverkaufte 4.000er-Tribuene stand nach
+  dem Ausbau auf 10.000 nur noch bei 40%). Spiele von vor dieser Aenderung haben kein `{stand}Size` und
+  fallen auf die heutige Groesse zurueck; da Tribuenen nicht verkleinert werden koennen, ist diese nie zu
+  klein - der Wert wird trotzdem bei 100% gekappt.
+- **TA-STD-46**: Eine Tribuene mit `{stand}UnderConstruction` zeigt in der Zuschauer-Tabelle einen
+  Schraubenschluessel statt `0 %`: sie war gesperrt, nicht unbesucht. Tooltip:
+  `stadium.attendanceUnderConstruction`.
+- **TA-STD-47**: Die Auslastung in der Spieldetail-Ansicht (`gameDetails.js`) rechnet gegen
+  `operationalCapacity`, also gegen dieselbe Kapazitaet wie der Heim-Bonus (TA-STD-30). Gegen
+  `totalCapacity` gerechnet erschien ein gut gefuelltes Stadion waehrend eines Ausbaus als halbleer -
+  bei FC Anker Jena wurden 22% angezeigt, waehrend die Engine mit 42% rechnete. Waren Plaetze gesperrt,
+  steht unter der Prozentzahl `of X open seats`. Spiele ohne `operationalCapacity` (vor dieser Aenderung)
+  fallen auf `totalCapacity` zurueck.
 
 ### Tests
 
-- Zuschauer- und Einnahmenberechnung (Dach-Bonus, Preisfaktor)
+- Zuschauer- und Einnahmenberechnung (Dach-Bonus, Preisfaktor) - gegen `calculateStadiumAttendance()` selbst,
+  nicht gegen eine nachgebaute Kopie der Formel
+- Gesperrte Tribuenen: 0 Zuschauer, aus `operationalCapacity` heraus, Heim-Bonus gegen die offenen Plaetze
+- Auslastung gegen die gespeicherte Tribuenengroesse statt gegen die heutige
 - Baukosten und Bauzeit
 - Bau-Abschluss (gleiche und verschiedene Saisons)
 - Stadion-Seite mit Phasen: vor Bau, waehrend Bau, nach Fertigstellung

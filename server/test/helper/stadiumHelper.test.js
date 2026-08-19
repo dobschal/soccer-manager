@@ -8,6 +8,7 @@ import {
   calculateConstructionTime,
   calculateConstructionEndDate,
   calculateHomeAttendanceBonus,
+  calculateStadiumAttendance,
   calculateSeatExpansionPrice,
   calcuateStadiumBuild,
   completeAllStadiumConstructionsForTeam
@@ -275,6 +276,110 @@ describe('stadiumHelper', () => {
     it('handles undefined / negative inputs as zero', () => {
       expect(calculateHomeAttendanceBonus(undefined, undefined).bonusPct).toBe(0)
       expect(calculateHomeAttendanceBonus(-100, -100).bonusPct).toBe(0)
+    })
+  })
+
+  describe('calculateStadiumAttendance', () => {
+    /**
+     * A four-stand stadium at the optimal ticket price, so the price factor is
+     * exactly 1 and demand equals the strength factor.
+     * @param {object} overrides
+     * @returns {object}
+     */
+    function stadium (overrides = {}) {
+      return {
+        north_stand_size: 5000,
+        north_stand_price: 15,
+        south_stand_size: 5000,
+        south_stand_price: 15,
+        east_stand_size: 2000,
+        east_stand_price: 15,
+        west_stand_size: 2000,
+        west_stand_price: 15,
+        ...overrides
+      }
+    }
+
+    it('caps the guests of a stand at its size', () => {
+      // Demand 4000 per stand: north has room, east does not.
+      const details = calculateStadiumAttendance(stadium(), 4000)
+      expect(details.northGuests).toBe(4000)
+      expect(details.eastGuests).toBe(2000)
+    })
+
+    it('applies the roof bonus and the price factor to the demand', () => {
+      const details = calculateStadiumAttendance(stadium({
+        north_stand_roof: 1,
+        south_stand_price: 30
+      }), 1000)
+      expect(details.northGuests).toBe(1200)
+      // (15/30)^2 = 0.25
+      expect(details.southGuests).toBe(250)
+      expect(details.southEarnings).toBe(250 * 30)
+    })
+
+    it('halves the demand for friendlies', () => {
+      const details = calculateStadiumAttendance(stadium(), 1000, 0.5)
+      expect(details.northGuests).toBe(500)
+    })
+
+    it('records the size of every stand so a later expansion cannot rewrite history', () => {
+      const details = calculateStadiumAttendance(stadium(), 1000)
+      expect(details.northSize).toBe(5000)
+      expect(details.eastSize).toBe(2000)
+      expect(details.corner_neSize).toBe(0)
+    })
+
+    it('closes a stand under construction and keeps its seats out of the fill rate', () => {
+      const details = calculateStadiumAttendance(stadium({
+        north_construction_end_game_day: 12,
+        north_construction_end_season: 4
+      }), 4000)
+
+      expect(details.northGuests).toBe(0)
+      expect(details.northEarnings).toBe(0)
+      expect(details.northUnderConstruction).toBe(true)
+      // All seats the stadium owns …
+      expect(details.totalCapacity).toBe(14000)
+      // … minus the 5.000 that were not on sale.
+      expect(details.operationalCapacity).toBe(9000)
+      // 4000 south + 2000 east + 2000 west
+      expect(details.totalAttendance).toBe(8000)
+    })
+
+    it('measures the home bonus against the open seats, not against all of them', () => {
+      const underConstruction = calculateStadiumAttendance(stadium({
+        north_construction_end_game_day: 12,
+        south_construction_end_game_day: 12
+      }), 4000)
+
+      // 4000 guests in 4000 open seats — a sold-out stadium, so no fill-rate
+      // malus even though half the seats are behind hoardings.
+      expect(underConstruction.operationalCapacity).toBe(4000)
+      expect(underConstruction.homeBonusPct)
+        .toBeCloseTo(calculateHomeAttendanceBonus(4000, 4000).bonusPct, 6)
+      expect(underConstruction.homeBonusPct).toBeGreaterThan(0)
+    })
+
+    it('sells no tickets for an unbuilt or free stand', () => {
+      const details = calculateStadiumAttendance(stadium({
+        corner_ne_stand_size: 0,
+        corner_ne_stand_price: 13,
+        east_stand_price: 0
+      }), 4000)
+
+      expect(details.corner_neGuests).toBe(0)
+      expect(details.corner_neEarnings).toBe(0)
+      expect(details.eastGuests).toBe(0)
+    })
+
+    it('handles a stadium without any stands', () => {
+      const details = calculateStadiumAttendance({}, 4000)
+      expect(details.totalCapacity).toBe(0)
+      expect(details.operationalCapacity).toBe(0)
+      expect(details.totalAttendance).toBe(0)
+      expect(details.totalEarnings).toBe(0)
+      expect(details.homeBonusPct).toBe(0)
     })
   })
 

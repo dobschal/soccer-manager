@@ -125,11 +125,7 @@ export class StadiumAttendanceTable extends UIElement {
       renderRow: (row) => [
         this._renderMatchDayLabel(row),
         this._renderOpponent(row.opponent),
-        ...STANDS.map(stand => {
-          const data = row.stands[stand] || { guests: 0, size: 0, percentage: 0 }
-          const title = `${data.guests.toLocaleString()} / ${data.size.toLocaleString()}`
-          return `<span title="${title}">${data.percentage}%</span>`
-        })
+        ...STANDS.map(stand => this._renderStandCell(row.stands[stand]))
       ],
       data: rows.slice(start, start + PAGE_SIZE),
       // `u-cursor-pointer` is not just cosmetic: iOS only bubbles click events
@@ -139,6 +135,25 @@ export class StadiumAttendanceTable extends UIElement {
       useUrlSort: false,
       classes: 'table-sm table-striped table-hover'
     })
+  }
+
+  /**
+   * One stand's fill rate for one game.
+   *
+   * A stand that was under construction was closed for that game, so it sold no
+   * tickets at all. Printing "0%" there puts it in the same column as a stand
+   * nobody wanted to visit — the wrench says the seats were not on sale.
+   *
+   * @param {object} [data] - `{ guests, size, percentage, underConstruction }`
+   * @returns {string}
+   */
+  _renderStandCell (data) {
+    const stand = data || { guests: 0, size: 0, percentage: 0 }
+    if (stand.underConstruction) {
+      return `<span class="text-muted" title="${t('stadium.attendanceUnderConstruction')}"><i class="fa fa-wrench"></i></span>`
+    }
+    const title = `${stand.guests.toLocaleString()} / ${stand.size.toLocaleString()}`
+    return `<span title="${title}">${stand.percentage}%</span>`
   }
 
   /**

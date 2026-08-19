@@ -1286,9 +1286,11 @@ Attendance and income:
 • Attendance per stand depends on both teams' strength, your ticket price and whether the stand has a roof.
 • Ticket prices can be set per stand from 1 to 100 €. Around 15 € tends to be the sweet spot – too high and fans stay away.
 • A stand you have not built yet has no price field: prices only appear for stands that actually exist.
+• A stand under construction is closed: it sells no tickets, and its seats do not count towards your capacity while the builders are there. The attendance table marks it with a wrench instead of 0 %.
+• The attendance table always shows how full a stand was on the day it was played, so finishing an expansion does not change the numbers of past games.
 
 Home advantage:
-• A well-filled stadium boosts your team strength by up to +10% (more fans, more boost), while a stadium below 50% capacity gives a penalty of up to −10%.
+• A well-filled stadium boosts your team strength by up to +10% (more fans, more boost), while a stadium below 50% capacity gives a penalty of up to −10%. Only the seats that were open count — closing a stand for construction does not push you towards the penalty.
 
 The 3D view at the top shows your ground as you have built it, your club emblem lit above every entrance in the stands' back walls. The slider under it sets the time of day – dawn, day, dusk or night; it starts on whatever matches your own clock. By day the floodlights are off.`
     },
@@ -1309,9 +1311,11 @@ Zuschauer und Einnahmen:
 • Die Zuschauerzahl pro Tribüne hängt von der Stärke beider Teams, deinem Ticketpreis und davon ab, ob die Tribüne ein Dach hat.
 • Ticketpreise lassen sich pro Tribüne von 1 bis 100 € festlegen. Rund 15 € ist meist optimal – zu hoch, und die Fans bleiben weg.
 • Für eine noch nicht gebaute Tribüne gibt es kein Eingabefeld: Preise erscheinen nur für Tribünen, die tatsächlich existieren.
+• Eine Tribüne im Bau ist gesperrt: Sie verkauft keine Tickets, und ihre Plätze zählen währenddessen nicht zu deiner Kapazität. In der Zuschauertabelle steht dort ein Schraubenschlüssel statt 0 %.
+• Die Zuschauertabelle zeigt immer die Auslastung des jeweiligen Spieltags. Ein fertiger Ausbau ändert die Zahlen vergangener Spiele also nicht mehr.
 
 Heimvorteil:
-• Ein gut gefülltes Stadion erhöht deine Teamstärke um bis zu +10% (mehr Fans, mehr Bonus), während ein Stadion unter 50% Auslastung einen Malus von bis zu −10% bringt.
+• Ein gut gefülltes Stadion erhöht deine Teamstärke um bis zu +10% (mehr Fans, mehr Bonus), während ein Stadion unter 50% Auslastung einen Malus von bis zu −10% bringt. Gezählt werden nur die geöffneten Plätze — eine Tribüne für den Ausbau zu sperren treibt dich also nicht in den Malus.
 
 Die 3D-Ansicht oben zeigt dein Stadion so, wie du es gebaut hast – über jedem Eingang in den Tribünen-Rückwänden hängt dein beleuchtetes Vereinswappen. Mit dem Regler darunter stellst du die Tageszeit ein – Morgendämmerung, Tag, Abenddämmerung oder Nacht; beim Öffnen passt sie zu deiner eigenen Uhrzeit. Tagsüber ist das Flutlicht aus.`
     }

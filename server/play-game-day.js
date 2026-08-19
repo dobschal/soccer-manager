@@ -7,7 +7,7 @@ import { getGameDayAndSeason } from './helper/gameDayHelper.js'
 import { getPlayerAge } from './helper/playerHelper.js'
 import { actionCardChances, deleteExpiredPendingCards, NEW_YOUTH_PLAYER_ACTIONS, MAX_YOUTH_CARDS_PER_SEASON, MAX_ACTION_CARDS_PER_TYPE } from './helper/actionCardHelper.js'
 import { generateMatchDayRecapsForGameDay } from './helper/matchDayRecapHelper.js'
-import { completeStadiumConstructions, calculateHomeAttendanceBonus } from './helper/stadiumHelper.js'
+import { completeStadiumConstructions, calculateStadiumAttendance } from './helper/stadiumHelper.js'
 import {
   completeBuildingConstructions,
   FITNESS_STUDIO_CARD_CHANCES,
@@ -829,54 +829,8 @@ async function _giveStadiumTicketEarnings (teamA, teamB, strengthTeamA, strength
     return {}
   }
 
-  const stands = ['north', 'south', 'west', 'east', 'corner_ne', 'corner_nw', 'corner_se', 'corner_sw']
-  const details = {}
-  let totalEarnings = 0
-  let totalCapacity = 0
-  let operationalCapacity = 0
-  let totalAttendance = 0
-  for (const stand of stands) {
-    const size = stadium[stand + '_stand_size'] || 0
-    totalCapacity += size
-
-    // Skip if stand is under construction (check for truthy value to handle missing columns)
-    const constructionEndDay = stadium[`${stand}_construction_end_game_day`]
-    if (constructionEndDay != null) {
-      details[stand + 'Guests'] = 0
-      details[stand + 'Earnings'] = 0
-      details[stand + 'UnderConstruction'] = true
-      continue
-    }
-
-    // Only operational stands contribute to the fill-rate used for the home bonus
-    operationalCapacity += size
-
-    const price = stadium[stand + '_stand_price'] || 0
-
-    // Skip if price is 0 to avoid division by zero
-    if (price <= 0 || size <= 0) {
-      details[stand + 'Guests'] = 0
-      details[stand + 'Earnings'] = 0
-      continue
-    }
-
-    const roofFactor = stadium[stand + '_stand_roof'] ? 1.2 : 1
-    const priceFactor = (15 / price) ** 2
-    const amountOfGuests = Math.floor(Math.min(size, strengthFactor * priceFactor * roofFactor))
-    details[stand + 'Guests'] = amountOfGuests
-    totalAttendance += amountOfGuests
-    const earnings = amountOfGuests * price
-    details[stand + 'Earnings'] = earnings
-    totalEarnings += earnings
-  }
-
-  details.totalCapacity = totalCapacity
-  details.totalAttendance = totalAttendance
-  details.totalEarnings = totalEarnings
-
-  const homeBonus = calculateHomeAttendanceBonus(totalAttendance, operationalCapacity)
-  details.homeBonusPct = homeBonus.bonusPct
-  details.homeBonusMultiplier = homeBonus.multiplier
+  const details = calculateStadiumAttendance(stadium, strengthFactor)
+  let totalEarnings = details.totalEarnings
 
   // Final safety check - never pass NaN to balance update
   if (isNaN(totalEarnings)) {
