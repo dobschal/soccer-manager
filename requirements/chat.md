@@ -128,10 +128,23 @@ Die Chat-Liste steht **ueber** der Freundesliste (`client/pages/dashboard/friend
 - **TA-CHT-26**: Auf dem Handy hat die Karte **kein** `max-height`: sie fuellt den Backdrop exakt,
   es bleibt kein Platz, den die `margin: auto` des Overlays zum Zentrieren nutzen koennte. Erst ab
   768px Breite gilt die Obergrenze von 760px, sonst waere das Sheet auf dem Desktop absurd hoch.
-  In der App haelt `padding-top: 3.5rem` auf dem Backdrop die 3rem hohe Top-Bar frei.
+  In der App haelt `padding-top: 3.5rem` auf dem Backdrop die 3rem hohe Top-Bar frei und
+  `padding-bottom: 4.5rem` die Tab-Bar — ohne das zweite Padding ragte das Sheet unten um genau
+  eine Tab-Bar-Hoehe ueber den Bildschirmrand hinaus. Der Safe-Area-Abstandhalter
+  (`.overlay-backdrop::after`) ist fuer den Chat-Backdrop auf `0` gesetzt, weil die Tab-Bar den
+  Home-Indicator-Streifen schon abdeckt und das Sheet sonst ein zweites Mal angehoben wuerde.
 - **TA-CHT-23**: In der nativen App ist die Chat-Karte von `padding-bottom: 10rem` ausgenommen
   (`native-app.css`). Die Regel schiebt sonst jedes Overlay ueber die Tab-Bar hinaus und hinterliess
   im Chat einen grossen weissen Bereich unter der Eingabezeile (#541).
+- **TA-CHT-27**: Nachrichtenblasen: eigene Nachrichten stehen rechts auf `--bs-info-bg-subtle`,
+  fremde links auf dunklem Grau. Jede Blase hat eine kleine Nase in der eigenen Hintergrundfarbe —
+  unten rechts bei eigenen, unten links bei fremden Nachrichten. Die Nase ist ein `::after` mit
+  `background: inherit` und `clip-path`, damit Blase und Nase nie in der Farbe auseinanderlaufen;
+  die zugehoerige untere Ecke der Blase ist dafuer fast eckig (`border-radius: 4px`).
+- **TA-CHT-28**: `.chat-bubble` wird ausschliesslich in `chat.css` gestylt. In `manager-chat.css`
+  lagen aus der Zeit vor der Umbenennung zu `.manager-chat-bubble` noch Regeln auf `.chat-bubble`,
+  die unter 768px mit `margin-top: -10px` den Flex-Abstand zwischen den Blasen auffrassen — auf dem
+  Desktop war davon nichts zu sehen. `client/test/style/chatBubbles.test.js` haelt das fest.
 
 ## Datei-Uploads in der nativen App (#542)
 

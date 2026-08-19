@@ -236,9 +236,17 @@ html, body {
 }
 
 /* The chat sheet fills its backdrop top to bottom, so the backdrop is what
-   keeps the 3rem top bar uncovered (#541). */
+   keeps the 3rem top bar and the 4.5rem tab bar uncovered (#541). Without the
+   bottom padding the sheet ran past the bottom edge, underneath the tab bar. */
 .native-app-layout ~ .overlay-backdrop.chat-overlay-backdrop {
     padding-top: 3.5rem;
+    padding-bottom: 4.5rem;
+}
+
+/* The tab bar already covers the home-indicator strip, so the generic
+   safe-area spacer of `.overlay-backdrop` would lift the sheet a second time. */
+.native-app-layout ~ .overlay-backdrop.chat-overlay-backdrop::after {
+    height: 0;
 }
 
 .native-app-layout #page {

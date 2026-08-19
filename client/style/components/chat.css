@@ -74,6 +74,7 @@
 }
 
 .chat-bubble {
+    position: relative;
     max-width: 78%;
     padding: 8px 12px;
     border-radius: 14px;
@@ -84,8 +85,36 @@
 }
 
 .chat-message--mine .chat-bubble {
-    background: var(--bs-info, #0dcaf0);
+    background: var(--bs-info-bg-subtle, #d1ecf1);
     color: #05323b;
+    /* A fully rounded corner would leave a gap next to the tail below. */
+    border-bottom-right-radius: 4px;
+}
+
+/* Little tail at the bottom corner of every bubble — bottom right for own
+   messages, bottom left for the partner's. `background: inherit` takes the
+   bubble's own colour, so the tail never drifts from it. */
+.chat-bubble::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    width: 10px;
+    height: 12px;
+    background: inherit;
+}
+
+.chat-message--mine .chat-bubble::after {
+    right: -8px;
+    clip-path: polygon(0 0, 100% 100%, 0 100%);
+}
+
+.chat-message--theirs .chat-bubble {
+    border-bottom-left-radius: 4px;
+}
+
+.chat-message--theirs .chat-bubble::after {
+    left: -8px;
+    clip-path: polygon(100% 0, 100% 100%, 0 100%);
 }
 
 .chat-message-image {
