@@ -19,6 +19,14 @@
     background: rgba(255, 255, 255, 0.08);
 }
 
+/* Stacked below the avatar on phones (flex-column up to sm): keep long
+   usernames and meta rows inside the card instead of pushing it wider. */
+.user-profile-identity {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+
 .user-profile-flag {
     width: 20px;
     height: 14px;

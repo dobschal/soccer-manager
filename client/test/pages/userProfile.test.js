@@ -102,6 +102,16 @@ describe('UserProfilePage', () => {
     })
   })
 
+  describe('mobile layout', () => {
+    it('stacks the avatar above the text on phones and puts them in a row from sm up', () => {
+      const page = new UserProfilePage()
+      const html = page._renderHeader({ id: 1, username: 'Tester', avatar: null }, null, false)
+      expect(html).toContain('flex-column flex-sm-row')
+      expect(html).toContain('align-items-start align-items-sm-center')
+      expect(html).toContain('user-profile-identity')
+    })
+  })
+
   describe('country and language', () => {
     it('renders the country with flag and the selected language', () => {
       const page = new UserProfilePage()

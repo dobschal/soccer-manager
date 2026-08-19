@@ -180,10 +180,10 @@ export class UserProfilePage extends UIElement {
       : `<div class="text-muted mt-2">${t('userProfile.noTeam')}</div>`
 
     return `
-      <div class="d-flex align-items-center gap-3 mb-4">
+      <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center gap-3 mb-4">
         <img class="user-profile-avatar${user.avatar ? '' : ' user-profile-avatar--default'}"
              src="${avatarSrc(user.avatar)}" alt="${user.username}">
-        <div>
+        <div class="user-profile-identity">
           <h3 class="mb-0">${user.username}</h3>
           ${teamLabel}
           <div class="text-muted small mt-2 d-flex flex-wrap gap-3">
