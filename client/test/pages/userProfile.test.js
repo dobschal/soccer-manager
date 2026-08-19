@@ -11,7 +11,7 @@ vi.mock('../../lib/gateway.js', () => ({
 }))
 vi.mock('../../lib/router.js', () => ({ goTo: vi.fn() }))
 vi.mock('../../partials/toast.js', () => ({ toast: vi.fn() }))
-vi.mock('../../i18n/index.js', () => ({ t: vi.fn((key) => key) }))
+vi.mock('../../i18n/index.js', () => ({ t: vi.fn((key) => key), getLocale: vi.fn(() => 'en') }))
 
 import { UserProfilePage } from '../../pages/userProfile.js'
 import { server } from '../../lib/gateway.js'
@@ -99,6 +99,36 @@ describe('UserProfilePage', () => {
       )
       expect(html).not.toContain('userProfile.joinedAt')
       expect(html).toContain('userProfile.lastLogin')
+    })
+  })
+
+  describe('country and language', () => {
+    it('renders the country with flag and the selected language', () => {
+      const page = new UserProfilePage()
+      const html = page._renderHeader(
+        { id: 1, username: 'Tester', avatar: null, country: 'DE', language: 'de' },
+        null,
+        false
+      )
+      expect(html).toContain('Germany')
+      expect(html).toContain('https://flagcdn.com/w40/de.png')
+      expect(html).toContain('common.german')
+    })
+
+    it('renders the country alone when no language is stored', () => {
+      const page = new UserProfilePage()
+      const html = page._renderHeader(
+        { id: 1, username: 'Tester', avatar: null, country: 'AT', language: null },
+        null,
+        false
+      )
+      expect(html).toContain('Austria')
+      expect(html).not.toContain('common.language')
+    })
+
+    it('omits the whole row when neither is known', () => {
+      const page = new UserProfilePage()
+      expect(page._renderOrigin({ country: null, language: null })).toBe('')
     })
   })
 

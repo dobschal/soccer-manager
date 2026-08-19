@@ -835,6 +835,41 @@ Auf- und Abstieg laufen automatisch ab, sobald der letzte Spieltag der Saison ge
     }
   },
 
+  // ─── Manager Profile ───────────────────────────────────────────────────
+  {
+    key: 'manager-profile',
+    en: {
+      title: 'Manager Profile',
+      subtitle: 'What other managers see about you',
+      text: `Every manager has a public profile you can open from search results, friend lists, the forum or a club page.
+
+What a profile shows:
+• Avatar, username and the club they currently manage, including its league.
+• When they joined and when they were last active.
+• Their country – flag and country name – taken from the location of their most recent login, plus the language their account is set to (English or German).
+• Their friends and a season-by-season history of every club they have managed, with league placement and cup run.
+
+Good to know:
+• The country is derived automatically from your login; there is nothing to fill in and no exact location is shown or stored on your profile.
+• You can start a chat with a manager or report them straight from their profile.`
+    },
+    de: {
+      title: 'Manager-Profil',
+      subtitle: 'Was andere Manager über dich sehen',
+      text: `Jeder Manager hat ein öffentliches Profil, das du über die Suche, Freundeslisten, das Forum oder eine Vereinsseite öffnen kannst.
+
+Was ein Profil zeigt:
+• Avatar, Benutzername und den aktuell betreuten Verein samt Liga.
+• Wann der Manager beigetreten ist und wann er zuletzt aktiv war.
+• Sein Land – Flagge und Landesname – aus dem Ort des letzten Logins sowie die im Konto eingestellte Sprache (Englisch oder Deutsch).
+• Seine Freunde und eine Saison-Historie aller von ihm betreuten Vereine mit Tabellenplatz und Pokal-Lauf.
+
+Gut zu wissen:
+• Das Land wird automatisch aus deinem Login ermittelt – du musst nichts eintragen, und ein genauer Standort wird im Profil weder gezeigt noch gespeichert.
+• Aus dem Profil heraus kannst du einen Chat mit dem Manager starten oder ihn melden.`
+    }
+  },
+
   // ─── Match Day ─────────────────────────────────────────────────────────
   {
     key: 'match-day',

@@ -4,6 +4,7 @@ import { toast } from '../../partials/toast.js'
 import { generateId } from '../../lib/html.js'
 import { t } from '../../i18n/index.js'
 import { ActiveUsersChart } from '../../partials/activeUsersChart.js'
+import { countryName } from '../../util/userLocale.js'
 
 const STATISTICS_PAGE_SIZE = 20
 
@@ -276,15 +277,7 @@ export class StatisticsAdminPage extends UIElement {
   }
 
   _countryName (code) {
-    if (!code) return '—'
-    const upper = String(code).toUpperCase()
-    try {
-      const locale = (typeof navigator !== 'undefined' && navigator.language) || 'en'
-      const name = new Intl.DisplayNames([locale], { type: 'region' }).of(upper)
-      return name || upper
-    } catch {
-      return upper
-    }
+    return countryName(code) ?? '—'
   }
 
   _formatMoney (value) {

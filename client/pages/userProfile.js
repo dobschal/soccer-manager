@@ -9,6 +9,7 @@ import { toast } from '../partials/toast.js'
 import { formatDate, formatLastActive } from '../lib/date.js'
 import { showReportUserOverlay } from '../partials/reportUserOverlay.js'
 import { showUserProfileOverlay } from '../partials/userProfileOverlay.js'
+import { countryFlagUrl, countryName, languageName } from '../util/userLocale.js'
 
 function avatarSrc (avatar) {
   if (avatar) return `${window.__NATIVE_SERVER_URL || ''}/uploads/avatars/${avatar}`
@@ -189,6 +190,7 @@ export class UserProfilePage extends UIElement {
             ${user.joinedAt ? `<span><i class="fa fa-calendar-plus"></i> ${t('userProfile.joinedAt')}: ${formatDate('DD.MM.YYYY', user.joinedAt)}</span>` : ''}
             <span><i class="fa fa-clock"></i> ${t('userProfile.lastLogin')}: ${formatLastActive(user.lastLogin)}</span>
           </div>
+          ${this._renderOrigin(user)}
           ${isOwnProfile ? `<span class="badge bg-info mt-2">${t('userProfile.you')}</span>` : ''}
           <div class="d-flex flex-wrap gap-2 mt-2">
             ${this._renderFriendToggleButton()}
@@ -196,6 +198,28 @@ export class UserProfilePage extends UIElement {
             ${isOwnProfile ? '' : `<button class="btn btn-sm btn-outline-danger report-user-btn"><i class="fa fa-flag"></i> ${t('report.button')}</button>`}
           </div>
         </div>
+      </div>
+    `
+  }
+
+  /**
+   * Country (flag + name) and selected in-game language, shown below the
+   * joined / last-login row. Either half is skipped when unknown.
+   * @param {{country: string|null, language: string|null}} user
+   * @returns {string}
+   */
+  _renderOrigin (user) {
+    const country = countryName(user.country)
+    const flag = countryFlagUrl(user.country)
+    const language = languageName(user.language)
+    if (!country && !language) return ''
+    return `
+      <div class="text-muted small mt-1 d-flex flex-wrap gap-3">
+        ${country ? `<span class="d-inline-flex align-items-center gap-1">
+          ${flag ? `<img class="user-profile-flag" src="${flag}" alt="${country}">` : ''}
+          ${country}
+        </span>` : ''}
+        ${language ? `<span><i class="fa fa-language"></i> ${t('common.language')}: ${language}</span>` : ''}
       </div>
     `
   }

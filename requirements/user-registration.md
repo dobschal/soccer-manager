@@ -18,6 +18,7 @@ Spieler koennen sich mit Benutzername und Passwort registrieren, einloggen und i
 - **US-REG-10**: Als Spieler kann ich mein Passwort im eingeloggten Zustand aendern (altes Passwort erforderlich).
 - **US-REG-11**: Als Spieler kann ich ein Profilbild hochladen und wieder entfernen.
 - **US-REG-12**: Als Spieler kann ich E-Mail-Benachrichtigungen abbestellen.
+- **US-REG-13**: Als Spieler sehe ich im Profil eines Managers unter der Zeile „Zuletzt aktiv“ dessen Land (Flagge + Landesname) und die von ihm eingestellte Sprache (Englisch/Deutsch).
 
 ## Technische Anforderungen
 
@@ -93,6 +94,12 @@ Spieler koennen sich mit Benutzername und Passwort registrieren, einloggen und i
 - **TA-REG-29**: Passwortwechsel im eingeloggten Zustand via `setPassword(oldPassword, newPassword)` — altes Passwort wird geprueft, neues muss >= 8 Zeichen haben.
 - **TA-REG-30**: Profilbild via `uploadAvatar(data, type)` / `removeAvatar()`; Dateien liegen unter `${DATA_ROOT}/uploads/avatars/`.
 - **TA-REG-31**: E-Mail-Benachrichtigungen abbestellbar via `setEmailOptOut(optOut)`.
+- **TA-REG-50**: `getUserProfile(userId)` liefert zusaetzlich `country` und `language`. Das Land ist
+  `COALESCE(last_country_web, last_country_ios, last_country_android)` — der Web-Login gewinnt vor den
+  App-Logins (gleiche Reihenfolge wie in der Admin-Statistik). Es stammt aus der GeoIP-Aufloesung des
+  letzten Logins, ist also kein vom Spieler gepflegtes Feld. Der Client zeigt den Landesnamen ueber
+  `Intl.DisplayNames` in der Sprache des Betrachters und die Flagge von `flagcdn.com`
+  (`client/util/userLocale.js`); fehlt eines der beiden Felder, entfaellt nur dieser Teil der Zeile.
 
 ### E-Mail-Verifizierung
 

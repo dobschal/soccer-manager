@@ -19,6 +19,13 @@
     background: rgba(255, 255, 255, 0.08);
 }
 
+.user-profile-flag {
+    width: 20px;
+    height: 14px;
+    object-fit: cover;
+    border-radius: 2px;
+}
+
 .user-profile-emblem {
     display: inline-flex;
     width: 24px;

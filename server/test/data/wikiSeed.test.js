@@ -7,7 +7,7 @@ const MAX_SUBTITLE = 255
 
 describe('wiki seed content (#441)', () => {
   it('covers all requested topics in both locales', () => {
-    expect(WIKI_SEED).toHaveLength(31)
+    expect(WIKI_SEED).toHaveLength(32)
   })
 
   it('documents the fair-play rules so sanctions are not a surprise', () => {
@@ -41,6 +41,15 @@ describe('wiki seed content (#441)', () => {
     const topic = WIKI_SEED.find(t => t.key === 'lineup')
     expect(topic.en.text).toMatch(/Saved lineups/i)
     expect(topic.de.text).toMatch(/Gespeicherte Aufstellungen/i)
+  })
+
+  it('tells managers that their profile shows country and language', () => {
+    const topic = WIKI_SEED.find(t => t.key === 'manager-profile')
+    expect(topic).toBeTruthy()
+    expect(topic.en.text).toMatch(/country/i)
+    expect(topic.en.text).toMatch(/language/i)
+    expect(topic.de.text).toMatch(/Land/)
+    expect(topic.de.text).toMatch(/Sprache/)
   })
 
   it('every topic has a unique, kebab-case page key (#456)', () => {

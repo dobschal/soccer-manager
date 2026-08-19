@@ -24,7 +24,9 @@ export default {
       throw new BadRequestError('Invalid user id')
     }
     const [user] = await query(
-      'SELECT id, username, avatar, last_login, created_at FROM user WHERE id=? LIMIT 1',
+      `SELECT id, username, avatar, last_login, created_at, language,
+              COALESCE(last_country_web, last_country_ios, last_country_android) AS country
+       FROM user WHERE id=? LIMIT 1`,
       [id]
     )
     if (!user) {
@@ -65,7 +67,11 @@ export default {
         username: user.username,
         avatar: user.avatar,
         lastLogin: user.last_login,
-        joinedAt: user.created_at
+        joinedAt: user.created_at,
+        // Country comes from the geoip lookup of the most recent login per
+        // platform; web wins over app logins (same order as the admin stats).
+        country: user.country || null,
+        language: user.language || null
       },
       currentTeam: currentTeam || null,
       friends,

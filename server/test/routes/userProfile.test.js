@@ -11,6 +11,8 @@ vi.mock('../../helper/cupHelper.js', () => ({ getTotalRounds: vi.fn() }))
 vi.mock('../../lib/email.js', () => ({ sendUserReportEmail: vi.fn().mockResolvedValue({ sent: true }) }))
 
 import { query } from '../../lib/database.js'
+import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
+import { getUserTeamHistory } from '../../helper/userHistoryHelper.js'
 import { sendUserReportEmail } from '../../lib/email.js'
 import handlers from '../../routes/userProfile.js'
 
@@ -97,5 +99,54 @@ describe('userProfile.reportUser (#421)', () => {
     query.mockResolvedValueOnce([])
     await expect(handlers.reportUser(6, 'is cheating', req)).rejects.toThrow()
     expect(sendUserReportEmail).not.toHaveBeenCalled()
+  })
+})
+
+describe('userProfile.getUserProfile country and language', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    getGameDayAndSeason.mockResolvedValue({ season: 3, gameDay: 1 })
+    getUserTeamHistory.mockResolvedValue([])
+  })
+
+  it('returns the last known login country and the selected language', async () => {
+    const req = createMockRequest({ user: { id: 5 } })
+    query
+      .mockResolvedValueOnce([{ id: 6, username: 'other', avatar: null, last_login: null, created_at: null, language: 'de', country: 'DE' }])
+      .mockResolvedValueOnce([]) // team
+      .mockResolvedValueOnce([]) // friends
+      .mockResolvedValueOnce([]) // isFriend
+
+    const result = await handlers.getUserProfile(6, req)
+
+    expect(result.user.country).toBe('DE')
+    expect(result.user.language).toBe('de')
+  })
+
+  it('nulls the country when no platform has a geoip result', async () => {
+    const req = createMockRequest({ user: { id: 5 } })
+    query
+      .mockResolvedValueOnce([{ id: 6, username: 'other', avatar: null, last_login: null, created_at: null, language: null, country: null }])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+
+    const result = await handlers.getUserProfile(6, req)
+
+    expect(result.user.country).toBeNull()
+    expect(result.user.language).toBeNull()
+  })
+
+  it('prefers the web country over the app countries', async () => {
+    const req = createMockRequest({ user: { id: 5 } })
+    query
+      .mockResolvedValueOnce([{ id: 6, username: 'other', avatar: null, last_login: null, created_at: null, language: 'en', country: 'AT' }])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+
+    await handlers.getUserProfile(6, req)
+
+    expect(query.mock.calls[0][0]).toContain('COALESCE(last_country_web, last_country_ios, last_country_android)')
   })
 })
