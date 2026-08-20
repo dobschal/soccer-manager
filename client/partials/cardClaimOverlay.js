@@ -4,28 +4,7 @@ import { server } from '../lib/gateway.js'
 import { t } from '../i18n/index.js'
 import { toast } from './toast.js'
 import { preloadActionCardSvgs, renderActionCardSvg } from '../lib/actionCardSvg.js'
-
-/**
- * @returns {Object.<string, string>}
- */
-function getActionCardTitles () {
-  return {
-    LEVEL_UP_PLAYER_100: t('actionCards.type.legendaryMastery'),
-    LEVEL_UP_PLAYER_70: t('actionCards.type.epicAdvancement'),
-    LEVEL_UP_PLAYER_40: t('actionCards.type.basicPromotion'),
-    NEW_YOUTH_PLAYER_1: t('actionCards.type.youthProspect1'),
-    NEW_YOUTH_PLAYER_2: t('actionCards.type.youthProspect2'),
-    NEW_YOUTH_PLAYER_3: t('actionCards.type.youthProspect3'),
-    FRESHNESS_5: t('actionCards.type.quickRecovery'),
-    FRESHNESS_10: t('actionCards.type.energyBoost'),
-    FRESHNESS_20: t('actionCards.type.fullRecovery'),
-    BONUS_100K: t('actionCards.type.cashBonus'),
-    MILLION_BONUS: t('actionCards.type.millionBonus'),
-    MOTIVATING_SPEECH: t('actionCards.type.motivatingSpeech'),
-    SPY: t('actionCards.type.spy'),
-    MEDICAL_TREATMENT: t('actionCards.type.medicalTreatment')
-  }
-}
+import { actionCardLabel } from '../lib/actionCardLabels.js'
 
 /**
  * Shows a sequential card claim overlay for pending action cards
@@ -65,7 +44,7 @@ function _showSingleCardClaim (card, remainingCards, state, { autoReveal = false
     const titleId = generateId()
     const skipBtnId = generateId()
 
-    const cardTitle = getActionCardTitles()[card.action] || 'Action Card'
+    const cardTitle = actionCardLabel(card.action)
     const cardSvg = renderActionCardSvg(card.action)
 
     const html = `
