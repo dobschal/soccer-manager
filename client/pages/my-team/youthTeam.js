@@ -10,7 +10,7 @@ import { Table } from '../../partials/table.js'
 import { showTutorialIfNeeded } from '../../partials/tutorialOverlay.js'
 import { fire } from '../../lib/event.js'
 import { SERVER_EVENTS } from '../../lib/serverEvents.js'
-import { TRAINING_MODES, MAX_SLOTS_PER_MODE } from './youthTrainingModes.js'
+import { TRAINING_MODES, MAX_SLOTS_PER_MODE, DEFAULT_TRAINING_MODE, effectiveTrainingMode } from './youthTrainingModes.js'
 import { YouthPlayerRow } from './youthPlayerRow.js'
 import { euroFormat } from '../../lib/currency.js'
 import { getNextGameDayDate } from '../../util/gameDayTime.js'
@@ -40,10 +40,12 @@ export class YouthTeamPage extends UIElement {
     this.youthPlayers = data.youthPlayers
     this.trainingMode = data.trainingMode
     this.academyLevel = data.academyLevel || 1
+    // `rest` comes back as `null` — it is the default mode every unassigned
+    // player falls into, so it can never be full.
     this.slotsByMode = data.slotsByMode || {
       training: 2,
       friendly_match: 2,
-      rest: MAX_SLOTS_PER_MODE
+      rest: null
     }
     this.season = data.season
     await this._prepareAcademyBackdrop()
@@ -254,13 +256,9 @@ export class YouthTeamPage extends UIElement {
    */
   _renderModeCard (mode) {
     const modeName = mode.key === 'friendly_match' ? 'friendlyMatch' : mode.key
-    const assigned = (this.youthPlayers || []).filter(p => p.training_mode === mode.key)
-    const modeLimit = this.slotsByMode[mode.key] ?? MAX_SLOTS_PER_MODE
-    const slots = []
-    for (let i = 0; i < MAX_SLOTS_PER_MODE; i++) {
-      slots.push(assigned[i] || null)
-    }
-    const fillRatio = `${assigned.length}/${modeLimit}`
+    const assigned = this._playersInMode(mode.key)
+    const modeLimit = this._slotLimit(mode.key)
+    const fillRatio = modeLimit === Infinity ? `${assigned.length}` : `${assigned.length}/${modeLimit}`
 
     return `
       <div class="card youth-mode-card flex-fill border-info bg-info-subtle">
@@ -276,7 +274,7 @@ export class YouthTeamPage extends UIElement {
             ${this._renderEffectRow(t('youthTeam.moral'), mode.effects.moral, false)}
           </div>
           <div class="youth-slot-list">
-            ${slots.map((p, idx) => this._renderSlot(mode.key, idx, p, idx < modeLimit)).join('')}
+            ${this._renderSlots(mode.key, assigned, modeLimit)}
           </div>
         </div>
       </div>
@@ -284,14 +282,72 @@ export class YouthTeamPage extends UIElement {
   }
 
   /**
+   * The youth players currently in a mode. A player without an own
+   * `training_mode` rests, so they show up in the rest card.
+   * @param {string} mode
+   * @returns {Array<object>}
+   * @private
+   */
+  _playersInMode (mode) {
+    return (this.youthPlayers || []).filter(p => effectiveTrainingMode(p) === mode)
+  }
+
+  /**
+   * How many players may stand in a mode. `rest` is the default every
+   * unassigned player falls into, so it is unbounded — the server sends `null`
+   * for it.
+   * @param {string} mode
+   * @returns {number}
+   * @private
+   */
+  _slotLimit (mode) {
+    if (mode === DEFAULT_TRAINING_MODE) return Infinity
+    const limit = this.slotsByMode?.[mode]
+    return typeof limit === 'number' ? limit : MAX_SLOTS_PER_MODE
+  }
+
+  /**
+   * The selects of one mode card: one per assigned player plus a single spare
+   * one below them, so there is always exactly one free slot to fill and no row
+   * of empty selects. When the mode is full, that spare slot is the
+   * locked "upgrade the academy" hint instead — and once the mode is maxed out
+   * there is nothing left to show, so the extra select is dropped.
+   * @param {string} mode
+   * @param {Array<object>} assigned
+   * @param {number} modeLimit
+   * @returns {string}
+   * @private
+   */
+  _renderSlots (mode, assigned, modeLimit) {
+    const slots = assigned.map(player => this._renderSlot(mode, player, true))
+    if (assigned.length < modeLimit) {
+      // Only worth an empty select while there is somebody left to put in it.
+      if (this._assignableTo(mode).length > 0) slots.push(this._renderSlot(mode, null, true))
+    } else if (modeLimit < MAX_SLOTS_PER_MODE) {
+      slots.push(this._renderSlot(mode, null, false))
+    }
+    return slots.join('')
+  }
+
+  /**
+   * The players a mode's free slot can be filled with — everybody who is not
+   * already in that mode.
+   * @param {string} mode
+   * @returns {Array<object>}
+   * @private
+   */
+  _assignableTo (mode) {
+    return (this.youthPlayers || []).filter(p => effectiveTrainingMode(p) !== mode)
+  }
+
+  /**
    * Render a single select slot for the mode card.
    * @param {string} mode
-   * @param {number} idx
    * @param {object|null} currentPlayer
    * @param {boolean} enabled - false → render locked/disabled slot (academy level too low)
    * @returns {string}
    */
-  _renderSlot (mode, idx, currentPlayer, enabled) {
+  _renderSlot (mode, currentPlayer, enabled) {
     if (!enabled) {
       return `
         <select class="form-select form-select-sm youth-slot-select" disabled title="${t('youthTeam.slotLocked')}">
@@ -307,19 +363,24 @@ export class YouthTeamPage extends UIElement {
       this._handleSlotChange(mode, currentPlayer, newPlayerId)
     })
 
-    const options = (this.youthPlayers || []).map(p => {
+    // The slot's own player plus everybody who could take the slot over —
+    // offering a player who already stands in this mode would do nothing.
+    const options = (this.youthPlayers || []).filter(p =>
+      (currentPlayer && currentPlayer.id === p.id) || effectiveTrainingMode(p) !== mode
+    ).map(p => {
       const selected = currentPlayer && currentPlayer.id === p.id ? 'selected' : ''
-      let suffix = ''
-      if (p.training_mode && p.training_mode !== mode) {
-        suffix = ` · ${this._getTrainingModeLabel(p.training_mode)}`
-      }
+      const playerMode = effectiveTrainingMode(p)
+      const suffix = playerMode === mode ? '' : ` · ${this._getTrainingModeLabel(playerMode)}`
       const label = `${p.name} · Lv ${Number(p.level || 0).toFixed(1)} · ${p.age}y${suffix}`
       return `<option value="${p.id}" ${selected}>${label}</option>`
     }).join('')
 
+    // Clearing a slot sends the player back to rest, so the rest card itself has
+    // nothing to clear — its occupied slots only offer a swap.
+    const canClear = !currentPlayer || mode !== DEFAULT_TRAINING_MODE
     return `
       <select id="${selectId}" class="form-select form-select-sm youth-slot-select">
-        <option value="">${t('youthTeam.slotEmpty')}</option>
+        ${canClear ? `<option value="">${t('youthTeam.slotEmpty')}</option>` : ''}
         ${options}
       </select>
     `
@@ -642,20 +703,15 @@ export class YouthTeamPage extends UIElement {
    * selector above update themselves off the server events emitted by each
    * `setYouthPlayerTrainingMode` call, so no full page re-render is needed.
    * @param {Object} player
-   * @param {string} newMode - '' for unassigned, otherwise a training mode key
+   * @param {string} newMode - a training mode key; falsy falls back to rest
    * @returns {Promise<void>}
    */
   async _handlePlayerModeChange (player, newMode) {
-    const target = newMode || null
-    if ((player.training_mode || null) === target) return
+    const target = newMode || DEFAULT_TRAINING_MODE
+    if (effectiveTrainingMode(player) === target) return
     try {
-      if (target === null) {
-        await server.setYouthPlayerTrainingMode(player.id, null)
-        toast(t('youthTeam.trainingModeUpdated'), 'success')
-        return
-      }
-      const limit = this.slotsByMode?.[target] ?? MAX_SLOTS_PER_MODE
-      const inMode = (this.youthPlayers || []).filter(p => p.training_mode === target && p.id !== player.id)
+      const limit = this._slotLimit(target)
+      const inMode = this._playersInMode(target).filter(p => p.id !== player.id)
       let removed = null
       if (inMode.length >= limit) {
         // The mode is already full — free its last occupant so the new player

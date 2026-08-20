@@ -25,21 +25,22 @@ const VALID_TRAINING_MODES = ['training', 'friendly_match', 'rest']
 const MAX_SLOTS_PER_MODE = 4
 
 /**
- * Slot capacity per training mode. `rest` is always 4. `training` and
- * `friendly_match` start at 2 (academy level 1) and gain one slot per
- * additional academy level, capped at MAX_SLOTS_PER_MODE.
+ * Slot capacity per training mode. `rest` is unbounded (`null`): it is the mode
+ * every youth player without an own assignment falls into, so it can never be
+ * full. `training` and `friendly_match` start at 2 (academy level 1) and
+ * gain one slot per additional academy level, capped at MAX_SLOTS_PER_MODE.
  * @param {string} mode
  * @param {number} academyLevel
- * @returns {number}
+ * @returns {number|null} null = unlimited
  */
 function slotsForMode (mode, academyLevel) {
-  if (mode === 'rest') return MAX_SLOTS_PER_MODE
+  if (mode === 'rest') return null
   return Math.max(2, Math.min(MAX_SLOTS_PER_MODE, academyLevel + 1))
 }
 
 /**
  * @param {number} academyLevel
- * @returns {{training: number, friendly_match: number, rest: number}}
+ * @returns {{training: number, friendly_match: number, rest: null}}
  */
 function slotsByModeFor (academyLevel) {
   return {
@@ -56,7 +57,7 @@ export default {
    * and the youth academy level (which determines how many slots are
    * available per training mode).
    * @param {Request} req
-   * @returns {Promise<{youthPlayers: YouthPlayerType[], trainingMode: string, academyLevel: number, slotsByMode: {training: number, friendly_match: number, rest: number}, season: number}>}
+   * @returns {Promise<{youthPlayers: YouthPlayerType[], trainingMode: string, academyLevel: number, slotsByMode: {training: number, friendly_match: number, rest: null}, season: number}>}
    */
   async getYouthTeam (req) {
     const team = await getTeam(req)
@@ -102,7 +103,8 @@ export default {
 
   /**
    * Assign one youth player to a specific training mode, or unassign with
-   * `null`. The destination mode is capped at `min(academyLevel, 3)` slots.
+   * `null` (which makes them rest, the default). `training` and
+   * `friendly_match` are capped by the academy level; `rest` is unlimited.
    * @param {number} youthPlayerId
    * @param {string|null} mode
    * @param {Request} req
@@ -127,9 +129,11 @@ export default {
     if (mode) {
       const academyLevel = await getYouthAcademyLevel(team.id)
       const limit = slotsForMode(mode, academyLevel)
-      const used = await countYouthPlayersInMode(team.id, mode, youthPlayerId)
-      if (used >= limit) {
-        throw new BadRequestError(t('error.youthModeSlotsFull', {}, locale))
+      if (limit !== null) {
+        const used = await countYouthPlayersInMode(team.id, mode, youthPlayerId)
+        if (used >= limit) {
+          throw new BadRequestError(t('error.youthModeSlotsFull', {}, locale))
+        }
       }
     }
 

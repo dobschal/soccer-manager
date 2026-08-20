@@ -34,3 +34,19 @@ export const TRAINING_MODES = [
 ]
 
 export const MAX_SLOTS_PER_MODE = 4
+
+/**
+ * Every youth player is always in one of the three modes: a player without an
+ * explicit `training_mode` rests (that is what the server's training run does
+ * with them too), so there is no "unassigned" state in the UI.
+ */
+export const DEFAULT_TRAINING_MODE = 'rest'
+
+/**
+ * The mode a youth player is effectively in — their own, or the default.
+ * @param {{training_mode?: string|null}} player
+ * @returns {string}
+ */
+export function effectiveTrainingMode (player) {
+  return player?.training_mode || DEFAULT_TRAINING_MODE
+}

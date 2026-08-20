@@ -3,7 +3,7 @@ import { SERVER_EVENTS } from '../../lib/serverEvents.js'
 import { ProgressBar } from '../../partials/progressBar.js'
 import { renderPositionBadge } from '../../partials/positionBadge.js'
 import { t } from '../../i18n/index.js'
-import { TRAINING_MODES } from './youthTrainingModes.js'
+import { TRAINING_MODES, DEFAULT_TRAINING_MODE, effectiveTrainingMode } from './youthTrainingModes.js'
 import { euroFormat } from '../../lib/currency.js'
 
 /**
@@ -33,7 +33,7 @@ export class YouthPlayerRow extends UIElement {
     // would make our guard short-circuit against a value that was already
     // updated for us — leaving a freed slot's `<select>` stale. See the
     // server-event handler below.
-    this._renderedMode = player.training_mode || null
+    this._renderedMode = effectiveTrainingMode(player)
   }
 
   /**
@@ -98,8 +98,9 @@ export class YouthPlayerRow extends UIElement {
     return {
       [SERVER_EVENTS.YOUTH_PLAYER_TRAINING_MODE_CHANGED.name]: (data) => {
         if (!data || data.youthPlayerId !== this.player.id) return
-        const newMode = data.newMode || null
-        this.player.training_mode = newMode
+        this.player.training_mode = data.newMode || null
+        // A player without an own mode rests, so that is what the row shows.
+        const newMode = data.newMode || DEFAULT_TRAINING_MODE
         // Re-render only when the row does not already display this mode. We
         // compare against `_renderedMode` (what we last drew), NOT
         // `this.player.training_mode`: the page-level handler for the same event
@@ -117,13 +118,13 @@ export class YouthPlayerRow extends UIElement {
    * @returns {void}
    */
   onMounted () {
-    this._renderedMode = this.player.training_mode || null
+    this._renderedMode = effectiveTrainingMode(this.player)
   }
   /**
    * @returns {void}
    */
   onUpdate () {
-    this._renderedMode = this.player.training_mode || null
+    this._renderedMode = effectiveTrainingMode(this.player)
   }
   updateIndicator = true
 
@@ -132,13 +133,12 @@ export class YouthPlayerRow extends UIElement {
    * @private
    */
   _renderModeSelect () {
-    const current = this.player.training_mode || ''
-    const options = [
-      `<option value="" ${current === '' ? 'selected' : ''}>${t('youthTeam.unassigned')}</option>`,
-      ...TRAINING_MODES.map(m =>
-        `<option value="${m.key}" ${current === m.key ? 'selected' : ''}>${this.page._getTrainingModeLabel(m.key)}</option>`
-      )
-    ].join('')
+    // No empty option: a youth player is always in one of the three modes, and
+    // one without an own `training_mode` rests.
+    const current = effectiveTrainingMode(this.player)
+    const options = TRAINING_MODES.map(m =>
+      `<option value="${m.key}" ${current === m.key ? 'selected' : ''}>${this.page._getTrainingModeLabel(m.key)}</option>`
+    ).join('')
     return `<select class="form-select form-select-sm youth-mode-inline-select" title="${t('youthTeam.changeTrainingMode')}">${options}</select>`
   }
 }

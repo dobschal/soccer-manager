@@ -184,23 +184,50 @@ describe('YouthTeamPage', () => {
       expect(toast).toHaveBeenCalledWith('youthTeam.trainingModeUpdated', 'success')
     })
 
-    it('unassigns the player when choosing the empty option', async () => {
+    it('falls back to rest instead of unassigning', async () => {
       server.setYouthPlayerTrainingMode.mockResolvedValue({ success: true })
       const players = [{ id: 1, training_mode: 'training' }]
-      const page = makePage(players, { training: 2, friendly_match: 2, rest: 4 })
+      const page = makePage(players, { training: 2, friendly_match: 2, rest: null })
 
       await page._handlePlayerModeChange(players[0], '')
 
-      expect(server.setYouthPlayerTrainingMode).toHaveBeenCalledWith(1, null)
+      expect(server.setYouthPlayerTrainingMode).toHaveBeenCalledWith(1, 'rest')
     })
 
     it('does nothing when the mode is unchanged', async () => {
       const players = [{ id: 1, training_mode: 'training' }]
-      const page = makePage(players, { training: 2, friendly_match: 2, rest: 4 })
+      const page = makePage(players, { training: 2, friendly_match: 2, rest: null })
 
       await page._handlePlayerModeChange(players[0], 'training')
 
       expect(server.setYouthPlayerTrainingMode).not.toHaveBeenCalled()
+    })
+
+    it('does nothing when a player without a mode is set to rest (rest is the default)', async () => {
+      const players = [{ id: 1, training_mode: null }]
+      const page = makePage(players, { training: 2, friendly_match: 2, rest: null })
+
+      await page._handlePlayerModeChange(players[0], 'rest')
+
+      expect(server.setYouthPlayerTrainingMode).not.toHaveBeenCalled()
+    })
+
+    it('never kicks anyone out of rest, since rest is unlimited', async () => {
+      server.setYouthPlayerTrainingMode.mockResolvedValue({ success: true })
+      const players = [
+        { id: 1, name: 'Newcomer', training_mode: 'training' },
+        { id: 2, name: 'Alpha', training_mode: 'rest' },
+        { id: 3, name: 'Bravo', training_mode: null },
+        { id: 4, name: 'Charlie', training_mode: 'rest' },
+        { id: 5, name: 'Delta', training_mode: 'rest' },
+        { id: 6, name: 'Echo', training_mode: 'rest' }
+      ]
+      const page = makePage(players, { training: 2, friendly_match: 2, rest: null })
+
+      await page._handlePlayerModeChange(players[0], 'rest')
+
+      expect(server.setYouthPlayerTrainingMode).toHaveBeenCalledTimes(1)
+      expect(server.setYouthPlayerTrainingMode).toHaveBeenCalledWith(1, 'rest')
     })
 
     it('leaves the caller responsible for reloading (server event drives updates)', async () => {
@@ -258,6 +285,115 @@ describe('YouthTeamPage', () => {
 
       expect(players[0].training_mode).toBe('rest')
       expect(page._refreshModeSelector).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('mode cards show n + 1 slots', () => {
+    function makeCardPage (youthPlayers, slotsByMode = { training: 2, friendly_match: 2, rest: null }) {
+      const page = new YouthTeamPage({ load: vi.fn(), update: vi.fn() })
+      page.youthPlayers = youthPlayers
+      page.slotsByMode = slotsByMode
+      return page
+    }
+
+    const countSelects = html => (html.match(/<select/g) || []).length
+
+    const restCard = page => page._renderModeCard(
+      { key: 'rest', icon: 'fa-bed', effects: { level: 0, fitness: 2, moral: 1 } }
+    )
+    const trainingCard = page => page._renderModeCard(
+      { key: 'training', icon: 'fa-bolt', effects: { level: 2, fitness: 1, moral: -1 } }
+    )
+
+    it('shows one spare select below the assigned players', () => {
+      const page = makeCardPage([
+        { id: 1, name: 'A', level: 5, age: 16, training_mode: 'rest' },
+        { id: 2, name: 'B', level: 5, age: 16, training_mode: 'training' }
+      ])
+      // One resting player -> its own select plus one free one.
+      expect(countSelects(restCard(page))).toBe(2)
+    })
+
+    it('counts players without a mode as resting', () => {
+      const page = makeCardPage([
+        { id: 1, name: 'A', level: 5, age: 16, training_mode: null },
+        { id: 2, name: 'B', level: 5, age: 16, training_mode: 'training' }
+      ])
+      const html = restCard(page)
+      expect(html).toContain('A · Lv 5.0 · 16y')
+      expect(countSelects(html)).toBe(2)
+    })
+
+    it('drops the spare select when there is nobody left to assign', () => {
+      const page = makeCardPage([
+        { id: 1, name: 'A', level: 5, age: 16, training_mode: 'rest' },
+        { id: 2, name: 'B', level: 5, age: 16, training_mode: null }
+      ])
+      // Everyone rests already, so a free rest slot could not be filled.
+      expect(countSelects(restCard(page))).toBe(2)
+    })
+
+    it('shows a single free select for an empty mode', () => {
+      const page = makeCardPage([
+        { id: 1, name: 'A', level: 5, age: 16, training_mode: 'rest' }
+      ])
+      const html = trainingCard(page)
+      expect(countSelects(html)).toBe(1)
+      expect(html).toContain('youthTeam.slotEmpty')
+    })
+
+    it('offers the academy upgrade instead of a free select once the mode is full', () => {
+      const page = makeCardPage([
+        { id: 1, name: 'A', level: 5, age: 16, training_mode: 'training' },
+        { id: 2, name: 'B', level: 5, age: 16, training_mode: 'training' },
+        { id: 3, name: 'C', level: 5, age: 16, training_mode: 'rest' }
+      ])
+      const html = trainingCard(page)
+      expect(countSelects(html)).toBe(3)
+      expect(html).toContain('youthTeam.slotLocked')
+    })
+
+    it('shows no extra select at all when a maxed-out mode is full', () => {
+      const players = [1, 2, 3, 4].map(id => ({ id, name: `P${id}`, level: 5, age: 16, training_mode: 'training' }))
+      const page = makeCardPage(players, { training: 4, friendly_match: 4, rest: null })
+      const html = trainingCard(page)
+      expect(countSelects(html)).toBe(4)
+      expect(html).not.toContain('youthTeam.slotLocked')
+    })
+
+    it('never shows the rest card as full', () => {
+      const players = [1, 2, 3, 4, 5, 6].map(id => ({ id, name: `P${id}`, level: 5, age: 16, training_mode: id === 6 ? 'training' : 'rest' }))
+      const page = makeCardPage(players)
+      const html = restCard(page)
+      expect(countSelects(html)).toBe(6)
+      expect(html).not.toContain('youthTeam.slotLocked')
+      // Five resting players, no limit behind the slash.
+      expect(html).toContain('>5</span>')
+    })
+
+    it('offers no empty option on an occupied rest slot — resting is the floor', () => {
+      const page = makeCardPage([
+        { id: 1, name: 'A', level: 5, age: 16, training_mode: 'rest' },
+        { id: 2, name: 'B', level: 5, age: 16, training_mode: 'training' }
+      ])
+      const restSelects = restCard(page).split('<select').slice(1)
+      expect(restSelects[0]).not.toContain('youthTeam.slotEmpty')
+      expect(restSelects[1]).toContain('youthTeam.slotEmpty')
+      // A training slot can still be cleared — the player then rests.
+      expect(trainingCard(page).split('<select')[1]).toContain('youthTeam.slotEmpty')
+    })
+
+    it('leaves players already in the mode out of the other slots\' options', () => {
+      const page = makeCardPage([
+        { id: 1, name: 'Alpha', level: 5, age: 16, training_mode: 'training' },
+        { id: 2, name: 'Bravo', level: 5, age: 16, training_mode: 'rest' }
+      ])
+      const [own, spare] = trainingCard(page).split('<select').slice(1)
+      expect(own).toContain('Alpha')
+      expect(own).toContain('Bravo')
+      // Alpha already trains, so putting them into the free slot is no option.
+      expect(spare).not.toContain('Alpha')
+      expect(spare).toContain('Bravo')
     })
   })
 

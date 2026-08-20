@@ -3727,6 +3727,19 @@ const migrations = [{
     }
   }
 }, {
+  name: 'Wiki: rest is the default youth mode and unlimited',
+  async run () {
+    const topic = WIKI_SEED.find(t => t.key === 'youth-players')
+    if (!topic) return
+    for (const locale of ['en', 'de']) {
+      const entry = topic[locale]
+      await query(
+        'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+        [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+      )
+    }
+  }
+}, {
   // The cache stores an already-sorted table, so every row written before the
   // DFB tie-break chain landed (#560) still carries the old points/goal-diff
   // only order. Dropping them makes the routes recompute on the next request.

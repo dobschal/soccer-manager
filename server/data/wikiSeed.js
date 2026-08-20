@@ -1556,8 +1556,9 @@ Youth attributes:
 Training modes (set per youngster):
 • Training: strong level growth, but morale drops a little.
 • Friendly match: standard growth and a morale boost, but costs fitness.
-• Rest: little growth, but recovers fitness and morale.
+• Rest: little growth, but recovers fitness and morale. This is the default — everyone you do not put into training or a friendly match is resting, so rest has no slot limit.
 • A good rhythm is roughly 2× training, 1× friendly, 1× rest.
+• Training and friendly match do have a limit, and it grows with your Youth Academy. Each mode card shows one dropdown per assigned player plus one free one below them, so there is always exactly one slot ready to fill.
 
 Age and promotion:
 • Youth players start at age 15. From age 16 you can promote them to your senior squad.
@@ -1587,8 +1588,9 @@ Eigenschaften der Jugendspieler:
 Trainingsmodi (je Talent einstellbar):
 • Training: starkes Level-Wachstum, aber die Moral sinkt etwas.
 • Freundschaftsspiel: normales Wachstum und ein Moral-Schub, kostet aber Fitness.
-• Ruhe: kaum Wachstum, regeneriert aber Fitness und Moral.
+• Ruhe: kaum Wachstum, regeneriert aber Fitness und Moral. Ruhe ist der Standard — wer nicht im Training oder im Freundschaftsspiel steht, ruht, deshalb hat Ruhe kein Slot-Limit.
 • Ein guter Rhythmus ist etwa 2× Training, 1× Freundschaftsspiel, 1× Ruhe.
+• Training und Freundschaftsspiel haben ein Limit, das mit der Jugendakademie waechst. Jede Modus-Karte zeigt ein Auswahlfeld pro zugewiesenem Spieler und darunter ein freies, es steht also immer genau ein Slot bereit.
 
 Alter und Beförderung:
 • Jugendspieler starten mit 15 Jahren. Ab 16 kannst du sie in deinen Profikader befördern.

@@ -7,8 +7,12 @@ Jugendspieler sind Nachwuchstalente, die ab Alter 15 im Jugendkader erscheinen u
 ## User Stories
 
 - **US-YTH-01**: Als Spieler sehe ich meinen Jugendkader im "Youth Team"-Tab der My-Team-Seite.
-- **US-YTH-02**: Als Spieler kann ich **jedem Jugendspieler einzeln** einen von drei Trainingsmodi zuweisen: Training, Freundschaftsspiel, Ruhe — oder ihn ohne Modus lassen.
+- **US-YTH-02**: Als Spieler kann ich **jedem Jugendspieler einzeln** einen von drei Trainingsmodi zuweisen: Training, Freundschaftsspiel, Ruhe. Es gibt keinen Zustand "nicht zugewiesen" — wer nicht trainiert oder spielt, ruht.
 - **US-YTH-09**: Als Spieler sehe ich pro Modus, wie viele Slots belegt sind, und erhalte eine Warnung, wenn ein Modus voll ist.
+- **US-YTH-14**: Als Spieler sehe ich in jeder Modus-Karte genau `n + 1` Auswahlfelder: eines pro
+  zugewiesenem Spieler plus ein freies darunter. Ist der Modus voll, steht dort stattdessen der
+  Hinweis zum Akademie-Ausbau; ist er ausgebaut und voll oder gibt es niemanden mehr zuzuweisen,
+  entfaellt das zusaetzliche Feld.
 - **US-YTH-10**: Als Spieler schalte ich durch den Ausbau der Jugendakademie mehr Trainings- und Freundschaftsspiel-Slots frei.
 - **US-YTH-03**: Als Spieler sehe ich pro Jugendspieler: Name, Position, Alter, Level, Moral und Fitness.
 - **US-YTH-04**: Als Spieler kann ich einen Jugendspieler ab Alter 16 ins A-Team befoerdern.
@@ -36,7 +40,8 @@ Jugendspieler sind Nachwuchstalente, die ab Alter 15 im Jugendkader erscheinen u
 
 Der Modus wird **pro Jugendspieler** gesetzt (`youth_player.training_mode`). Spieler ohne
 eigenen Modus fallen auf die Team-Einstellung `team.youth_training_mode` zurueck (Legacy,
-Standard `rest`).
+Standard `rest`) — in der UI werden sie deshalb als **Ruhe** angezeigt und in der Ruhe-Karte
+gezaehlt. Einen Status "nicht zugewiesen" gibt es fuer den Spieler nicht.
 
 | Modus | Fitness | Moral | Level-Bonus |
 |---|---|---|---|
@@ -55,10 +60,12 @@ Jugendakademie ab (`slotsForMode` in `server/routes/youth.js`, `MAX_SLOTS_PER_MO
 |---|---|---|---|
 | Training | 2 | 3 | 4 |
 | Freundschaftsspiel | 2 | 3 | 4 |
-| Ruhe | 4 | 4 | 4 |
+| Ruhe | unbegrenzt | unbegrenzt | unbegrenzt |
 
-`rest` hat immer die volle Kapazitaet; `training` und `friendly_match` berechnen sich als
-`max(2, min(4, akademieLevel + 1))`. Ist ein Modus voll, wird die Zuweisung mit
+`rest` ist **unbegrenzt** (`slotsForMode` liefert dafuer `null`, das auch so im
+`slotsByMode`-Response steht): Ruhe ist der Standardmodus, in den jeder Spieler ohne eigene
+Zuweisung faellt, kann also nie voll sein. `training` und `friendly_match` berechnen sich als
+`max(2, min(4, akademieLevel + 1))`. Ist einer dieser Modi voll, wird die Zuweisung mit
 `error.youthModeSlotsFull` abgelehnt.
 
 ### Idealer Trainingsrhythmus
@@ -85,7 +92,7 @@ randomFactor = 0.9 bis 1.1
 ### Datenbank
 
 - **TA-YTH-01**: Tabelle `youth_player`: `id`, `team_id`, `name`, `position`, `level` (DECIMAL(4,3)), `talent` (DECIMAL(4,3)), `moral` (DECIMAL(4,3)), `fitness` (DECIMAL(4,3)), `hair_color`, `skin_color`, `birth_season`, `training_mode` (VARCHAR(20), nullable), `created_at`.
-- **TA-YTH-02**: `youth_player.training_mode` haelt den individuellen Modus (`training` / `friendly_match` / `rest` / `NULL`). `team.youth_training_mode` (VARCHAR(20), Standard `'rest'`) existiert weiter als **Fallback** fuer Spieler ohne eigenen Modus.
+- **TA-YTH-02**: `youth_player.training_mode` haelt den individuellen Modus (`training` / `friendly_match` / `rest` / `NULL`). `NULL` ist gleichbedeutend mit Ruhe: `team.youth_training_mode` (VARCHAR(20), Standard `'rest'`) existiert weiter als **Fallback** fuer Spieler ohne eigenen Modus, und der Client zeigt solche Spieler als Ruhe an.
 - **TA-YTH-03**: Jedes neue Team erhaelt 3 zufaellige Jugendspieler.
 
 ### Altersberechnung
@@ -201,7 +208,8 @@ randomFactor = 0.9 bis 1.1
   Szene nie hochkommt
 - Training-Effekte auf Level, Moral und Fitness
 - Individueller `training_mode` schlaegt den Team-Fallback; Spieler ohne Modus nutzen den Fallback
-- Slot-Kapazitaet pro Modus je Akademie-Level; volle Modi werden abgelehnt
+- Slot-Kapazitaet pro Modus je Akademie-Level; volle Modi werden abgelehnt (`rest` nie)
+- `n + 1` Auswahlfelder pro Modus-Karte; Spieler ohne eigenen Modus zaehlen als ruhend
 - Wechsel innerhalb desselben Modus scheitert nicht am Limit (eigener Spieler ausgeschlossen)
 - `mode = null` entfernt die Zuweisung
 - Befoerderungs-Altersbeschraenkung (>= 16)
