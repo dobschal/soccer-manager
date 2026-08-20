@@ -11,12 +11,13 @@ import { SearchPanel } from '../partials/searchPanel.js'
 import { t } from '../i18n/index.js'
 import { el, generateId } from '../lib/html.js'
 import { showCardClaimOverlay } from '../partials/cardClaimOverlay.js'
-import { showSeasonReviewOverlay, isSeasonReviewDismissed } from '../partials/seasonReviewOverlay.js'
-import { maybeShowSpielTickerOverlay } from '../partials/spielTickerOverlay.js'
+import { showSeasonReviewOverlay, isSeasonReviewDismissed, markSeasonReviewDismissed } from '../partials/seasonReviewOverlay.js'
+import { maybeShowSpielTickerOverlay, markSpielTickerSeen } from '../partials/spielTickerOverlay.js'
 import { maybeShowEmailPrompt } from '../partials/emailPromptDialog.js'
 import { CHAT_MESSAGES_READ_EVENT } from '../partials/chatOverlay.js'
 import { TabbedPage } from '../lib/TabbedPage.js'
 import { DailyLoginBar } from '../partials/dailyLoginBar.js'
+import { consumeFreshRegistration } from '../lib/freshRegistration.js'
 
 export class DashboardPage extends TabbedPage {
   async load () {
@@ -461,6 +462,17 @@ export class DashboardPage extends TabbedPage {
   }
 
   async _showDashboardOverlays () {
+    // A manager who just walked out of the registration wizard gets the
+    // tutorial and nothing else. The match ticker would replay a game the bot
+    // played, and the card claim, season review and email prompt would all
+    // stack in front of the dashboard they have not even seen yet (#564).
+    // Every one of them is still pending state, so they simply show up on the
+    // next visit.
+    if (consumeFreshRegistration()) {
+      this._skipPreRegistrationOverlays()
+      await this._showTutorialIfNeeded()
+      return
+    }
     // Fixed order — each overlay waits for the previous one to close so the
     // user never sees two overlays at once.
     await this._showEmailPromptIfNeeded()
@@ -468,6 +480,23 @@ export class DashboardPage extends TabbedPage {
     await this._showTutorialIfNeeded()
     await this._showSpielTickerIfNeeded()
     await this._showPendingCardsIfNeeded()
+  }
+
+  /**
+   * Retire the overlays that only look back at what the team did *before* this
+   * manager took it over: the match ticker of the last bot-played game and the
+   * review of the season that ended under bot control. Both are marked as seen
+   * so they don't resurface on the second dashboard visit either (#564).
+   *
+   * Pending action cards are deliberately left alone — they belong to the new
+   * manager, so the claim overlay is only postponed, not thrown away.
+   * @returns {void}
+   * @private
+   */
+  _skipPreRegistrationOverlays () {
+    const lastGame = this._findLastPlayedGame()
+    if (lastGame) markSpielTickerSeen(this.season, this.gameDay, lastGame.id)
+    if (this._seasonReview?.isSeasonEnd) markSeasonReviewDismissed(this._seasonReview.season)
   }
 
   /**

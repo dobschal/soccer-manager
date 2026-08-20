@@ -41,6 +41,10 @@ vi.mock('../../lib/router.js', () => ({
   setHasTeam: vi.fn()
 }))
 
+vi.mock('../../lib/freshRegistration.js', () => ({
+  markFreshRegistration: vi.fn()
+}))
+
 vi.mock('../../lib/html.js', () => ({
   el: vi.fn(() => null),
   generateId: vi.fn(() => 'gen-id'),
@@ -58,6 +62,7 @@ import { toast } from '../../partials/toast.js'
 import { openEmblemEditor } from '../../partials/emblemEditor.js'
 import { setHasTeam, goTo } from '../../lib/router.js'
 import { value } from '../../lib/html.js'
+import { markFreshRegistration } from '../../lib/freshRegistration.js'
 import { ChooseTeamPage } from '../../pages/choose-team.js'
 
 describe('ChooseTeamPage (post-registration wizard, #453)', () => {
@@ -153,6 +158,23 @@ describe('ChooseTeamPage (post-registration wizard, #453)', () => {
     expect(goTo).toHaveBeenCalledWith('')
     // The emblem editor must NOT auto-open — only via the "customize" button.
     expect(openEmblemEditor).not.toHaveBeenCalled()
+    // The dashboard needs to know this is a brand-new manager (#564).
+    expect(markFreshRegistration).toHaveBeenCalled()
+  })
+
+  it('does not flag a fresh registration when the club name is rejected (#564)', async () => {
+    value.mockReturnValue('')
+
+    const page = new ChooseTeamPage()
+    page._team = { id: 5, name: 'Random FC' }
+    page._step = 'setup'
+    page._nameInputId = 'name'
+    page._shortInputId = 'short'
+
+    await page._onSaveName()
+
+    expect(markFreshRegistration).not.toHaveBeenCalled()
+    expect(goTo).not.toHaveBeenCalled()
   })
 
   it('rejects an empty club name with a toast and does not finish', async () => {

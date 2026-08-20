@@ -42,7 +42,15 @@ export function isSpielTickerSeen (season, gameDay, gameId) {
   }
 }
 
-function markSpielTickerSeen (season, gameDay, gameId) {
+/**
+ * Remember that the ticker for this game is done with. Also used to skip the
+ * ticker for a game the user's team played before they took it over (#564).
+ * @param {number} season
+ * @param {number} gameDay
+ * @param {number} gameId
+ * @returns {void}
+ */
+export function markSpielTickerSeen (season, gameDay, gameId) {
   try {
     window.localStorage.setItem(seenKey(season, gameDay, gameId), '1')
   } catch {

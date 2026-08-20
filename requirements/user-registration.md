@@ -19,6 +19,9 @@ Spieler koennen sich mit Benutzername und Passwort registrieren, einloggen und i
 - **US-REG-11**: Als Spieler kann ich ein Profilbild hochladen und wieder entfernen.
 - **US-REG-12**: Als Spieler kann ich E-Mail-Benachrichtigungen abbestellen.
 - **US-REG-13**: Als Spieler sehe ich im Profil eines Managers unter der Zeile „Zuletzt aktiv“ dessen Land (Flagge + Landesname) und die von ihm eingestellte Sprache (Englisch/Deutsch).
+- **US-REG-14**: Als neuer Spieler sehe ich auf dem ersten Dashboard nach der Registrierung nur das
+  Tutorial-Overlay und danach das Dashboard — kein Spiel-Ticker, keine Aktionskarten-Vergabe, keine
+  Saison-Rueckschau und keinen E-Mail-Hinweis.
 
 ## Technische Anforderungen
 
@@ -44,6 +47,13 @@ Spieler koennen sich mit Benutzername und Passwort registrieren, einloggen und i
   Teamname (#449). Ausgeloest wird sie bei der **Teamwahl**, nicht bei der Registrierung — vorher gibt es
   keinen Teamnamen. Der Versand ist fire-and-forget: ein Push-Fehler darf die Uebernahme nie scheitern lassen.
 - **TA-REG-28**: Ein Nutzer mit bestehendem Team kann nicht erneut waehlen (`chooseTeam.alreadyHasTeam`).
+- **TA-REG-51**: Der Setup-Schritt setzt beim Verlassen `markFreshRegistration()`
+  (`client/lib/freshRegistration.js`, Flag `freshRegistration` im `localStorage`). Das Dashboard
+  konsumiert das Flag einmalig in `_showDashboardOverlays()` und zeigt dann ausschliesslich das
+  Tutorial-Overlay (#564).
+- **TA-REG-52**: Beim Konsumieren werden Spiel-Ticker des letzten Spiels und die Saison-Rueckschau
+  als gesehen markiert — beides gehoert noch zur Bot-Zeit des Teams. Offene Aktionskarten bleiben
+  bestehen und werden beim naechsten Dashboard-Besuch normal vergeben.
 
 ### Login
 
@@ -175,3 +185,5 @@ Spieler koennen sich mit Benutzername und Passwort registrieren, einloggen und i
 - `X-Client-Id` wird mitgesendet, auch unauthentifiziert; gesperrtes `localStorage` bricht den
   Request nicht
 - Konto-Loeschung entfernt `funnel_event`-Zeilen
+- Erstes Dashboard nach der Registrierung: nur Tutorial, Ticker/Saison-Rueckschau als gesehen
+  markiert, Aktionskarten bleiben offen; zweiter Besuch verhaelt sich normal
