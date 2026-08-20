@@ -103,13 +103,22 @@
 /* ==========================================================================
    Youth Team – squad photo (#563)
 
-   The squad lines up on the pitch in front of the youth academy, so the
-   backdrop is the same artwork the buildings page uses, anchored to its
-   bottom edge where the grass is. Rows sit at the bottom of the frame; the
-   portrait size itself is set in JS because it is baked into the SVG.
+   The squad lines up on the pitch in front of the youth academy. The backdrop
+   is a still of the club's own academy cropped out of the 3D scene, painted
+   onto the element by `_applyAcademyBackdrop` (a data URL cannot live in a
+   stylesheet); the painted level artwork below is the fallback until that still
+   exists — and the only backdrop without WebGL.
+
+   Both rows share one slot grid: a member is exactly one slot wide, so two
+   centred rows whose counts differ by one land in each other's gaps, and the
+   `--offset` modifier nudges the back row by half a slot when they don't.
    ========================================================================== */
 
 .youth-squad-photo {
+    /* Slot = one member's width plus the gap to the next. Everything about the
+       staggering is derived from these two, so they only exist here. */
+    --youth-slot-width: 5.5rem;
+    --youth-slot-gap: 0.35rem;
     position: relative;
     display: flex;
     flex-direction: column;
@@ -117,9 +126,9 @@
     gap: 0.5rem;
     /* Tall enough that the academy behind the squad stays recognisable — the
        backdrop is anchored to its bottom edge, so a flat frame would show
-       nothing but grass. Rows beyond the third just make the frame grow. */
+       nothing but grass. */
     min-height: 20rem;
-    padding: 2rem 0.75rem 0.5rem;
+    padding: 2rem 0 0.5rem;
     border-radius: 0.75rem;
     overflow: hidden;
     background-color: #4a8f2a;
@@ -141,20 +150,36 @@
     background-image: url("../../assets/youth-academy/youth-academy-level-3.png");
 }
 
+/* A big squad is wider than the frame — it scrolls sideways instead of wrapping
+   into a third row, and both rows scroll together. */
+.youth-squad-scroller {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    padding: 0 0.75rem;
+}
+
+/* `max-content` + auto margins rather than `justify-content` on the scroller:
+   a centred flex child cannot be scrolled back to its start. */
 .youth-squad-rows {
     display: flex;
     flex-direction: column;
-    align-items: center;
     gap: 0.75rem;
+    width: max-content;
+    margin-inline: auto;
 }
 
 .youth-squad-row {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     justify-content: center;
     align-items: flex-end;
-    /* Tight horizontally so the squad reads as one group standing together. */
-    gap: 0.5rem 0.25rem;
+    gap: var(--youth-slot-gap);
+}
+
+.youth-squad-row--offset {
+    transform: translateX(calc((var(--youth-slot-width) + var(--youth-slot-gap)) / 2));
 }
 
 .youth-squad-member {
@@ -163,7 +188,9 @@
     align-items: center;
     gap: 0.3rem;
     margin: 0;
-    max-width: 6.5rem;
+    /* Fixed, not fit-content: the stagger only works on an even slot grid. */
+    width: var(--youth-slot-width);
+    flex: 0 0 auto;
 }
 
 .youth-squad-portrait {
@@ -183,7 +210,7 @@
 }
 
 .youth-squad-name {
-    max-width: 6.5rem;
+    max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -203,4 +230,17 @@
     font-style: italic;
     color: rgba(255, 255, 255, 0.9);
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+/* The canvas the academy still is rendered on: it needs a real size for WebGL,
+   but must never be seen or take up room. Removed again after the capture. */
+.youth-academy-still {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 960px;
+    height: 400px;
+    opacity: 0;
+    pointer-events: none;
+    z-index: -1;
 }

@@ -16,6 +16,9 @@ import { euroFormat } from '../../lib/currency.js'
 import { getNextGameDayDate } from '../../util/gameDayTime.js'
 import { renderPlayerImage } from '../../partials/playerImage.js'
 import { renderPositionBadge } from '../../partials/positionBadge.js'
+import { StadiumCanvas } from '../../partials/stadiumCanvas.js'
+import { BUILDING_BACKDROP_VIEWS } from '../../partials/clubBuildingsScene.js'
+import { cachedBuildingStill, rememberBuildingStill } from '../../lib/buildingStill.js'
 
 export class YouthTeamPage extends UIElement {
   /**
@@ -42,6 +45,7 @@ export class YouthTeamPage extends UIElement {
       rest: MAX_SLOTS_PER_MODE
     }
     this.season = data.season
+    await this._prepareAcademyBackdrop()
   }
   /**
    * @returns {string}
@@ -64,6 +68,8 @@ export class YouthTeamPage extends UIElement {
         <div class="mt-4" id="${this._modeSelectorContainerId}">
           ${this._renderModeSelectorContent()}
         </div>
+
+        ${this._renderAcademyRenderCanvas()}
       </div>
     `
   }
@@ -100,6 +106,7 @@ export class YouthTeamPage extends UIElement {
   onMounted () {
     this._startTimer()
     this._loadSquadPhotoImages()
+    void this._captureAcademyBackdrop()
     void showTutorialIfNeeded('youth', this)
   }
   /**
@@ -109,6 +116,7 @@ export class YouthTeamPage extends UIElement {
    */
   onUpdate () {
     this._loadSquadPhotoImages()
+    this._applyAcademyBackdrop()
   }
   /**
    * Called when component is removed from DOM
@@ -116,6 +124,7 @@ export class YouthTeamPage extends UIElement {
    */
   onDestroy () {
     this._stopTimer()
+    this._disposeAcademyCanvas()
   }
   /**
    * Stable id for the top mode-selector container. When
@@ -372,18 +381,15 @@ export class YouthTeamPage extends UIElement {
     return Array.isArray(this.youthPlayers) && this.youthPlayers.some(p => p.age === age)
   }
 
-  /**
-   * How many portraits fit into the widest row of the squad photo before the
-   * next row is started. Kept at three so the rows still line up on a phone.
-   */
-  static SQUAD_PHOTO_MAX_ROWS = 3
-
   /** Portrait width in px. The SVG is sized in JS, so this cannot be CSS. */
   static SQUAD_PHOTO_PORTRAIT_SIZE = 84
 
+  /** Size of the academy still used as the photo's backdrop. */
+  static ACADEMY_STILL = Object.freeze({width: 960, height: 400})
+
   /**
-   * The youth squad as a team photo in front of the academy: portraits lined up
-   * in two or three rows on the pitch, each with name and position (#563).
+   * The youth squad as a team photo in front of the academy: two staggered rows
+   * on the pitch, each player with their name and position (#563).
    *
    * Portraits are SVGs loaded over the network, so the markup only carries
    * placeholders here and `_loadSquadPhotoImages` fills them once the page is
@@ -395,35 +401,29 @@ export class YouthTeamPage extends UIElement {
     const players = this.youthPlayers || []
     if (players.length === 0) return ''
 
-    const rows = this._splitIntoPhotoRows(players).map(row => `
-      <div class="youth-squad-row">
-        ${row.map(p => `
-          <figure class="youth-squad-member">
-            <div class="youth-squad-portrait" data-youth-portrait="${p.id}"></div>
-            <figcaption class="youth-squad-caption">
-              <span class="youth-squad-name">${p.name}</span>
-              ${renderPositionBadge(p.position)}
-            </figcaption>
-          </figure>
-        `).join('')}
-      </div>
-    `).join('')
-
-    const teamName = this.parent?.data?.team?.name
-    const caption = [teamName, t('youthTeam.squadPhotoCaption', { season: (this.season ?? 0) + 1 })]
-      .filter(Boolean)
-      .join(' · ')
+    const {back, front} = this._splitIntoPhotoRows(players)
+    // Two centred rows land in each other's gaps as soon as their counts differ
+    // by an odd number. When they differ by an even one the back row would sit
+    // right on top of the front row, so it is nudged over by half a slot.
+    const offset = (front.length - back.length) % 2 === 0 ? ' youth-squad-row--offset' : ''
 
     return `
-      <div class="youth-squad-photo youth-squad-photo--level-${this._academyImageLevel()} mb-4">
-        <div class="youth-squad-rows">${rows}</div>
-        <div class="youth-squad-photo-caption">${caption}</div>
+      <div class="youth-squad-photo youth-squad-photo--level-${this._academyImageLevel()} mb-4" data-youth-squad-photo>
+        <div class="youth-squad-scroller">
+          <div class="youth-squad-rows">
+            ${back.length ? `<div class="youth-squad-row youth-squad-row--back${offset}">${this._renderPhotoRow(back)}</div>` : ''}
+            <div class="youth-squad-row youth-squad-row--front">${this._renderPhotoRow(front)}</div>
+          </div>
+        </div>
+        <div class="youth-squad-photo-caption">${this._squadPhotoCaption()}</div>
       </div>
     `
   }
 
   /**
-   * Academy level clamped to the range the backdrop images cover.
+   * Academy level clamped to the range the painted level images cover. They are
+   * the fallback backdrop until the 3D still arrives — and the only one when
+   * WebGL is unavailable.
    * @returns {number}
    * @private
    */
@@ -432,25 +432,48 @@ export class YouthTeamPage extends UIElement {
   }
 
   /**
-   * Split the squad into photo rows, back row first. Up to six players stand in
-   * two rows, everyone beyond that in three, and a row never has fewer players
-   * than the row behind it — which is how a team photo is arranged.
+   * @param {Array<object>} row
+   * @returns {string}
+   * @private
+   */
+  _renderPhotoRow (row) {
+    return row.map(p => `
+      <figure class="youth-squad-member">
+        <div class="youth-squad-portrait" data-youth-portrait="${p.id}"></div>
+        <figcaption class="youth-squad-caption">
+          <span class="youth-squad-name">${p.name}</span>
+          ${renderPositionBadge(p.position)}
+        </figcaption>
+      </figure>
+    `).join('')
+  }
+
+  /**
+   * @returns {string}
+   * @private
+   */
+  _squadPhotoCaption () {
+    const teamName = this.parent?.data?.team?.name
+    return [teamName, t('youthTeam.squadPhotoCaption', { season: (this.season ?? 0) + 1 })]
+      .filter(Boolean)
+      .join(' · ')
+  }
+
+  /**
+   * Split the squad over the photo's two rows. The front row always takes one
+   * more than half, so it is the wider one and the back row fits into its gaps:
+   * 3 players stand 2 + 1, four 3 + 1, five 3 + 2, six 4 + 2, and so on. Up to
+   * two players there is no back row at all.
    * @param {Array<object>} players
-   * @returns {Array<Array<object>>}
+   * @returns {{back: Array<object>, front: Array<object>}}
    * @private
    */
   _splitIntoPhotoRows (players) {
-    const rowCount = players.length <= 1
-      ? 1
-      : players.length <= 6 ? 2 : YouthTeamPage.SQUAD_PHOTO_MAX_ROWS
-    const rows = []
-    let index = 0
-    for (let row = 0; row < rowCount; row++) {
-      const size = Math.ceil((players.length - index) / (rowCount - row))
-      rows.push(players.slice(index, index + size))
-      index += size
+    const frontCount = Math.floor(players.length / 2) + 1
+    return {
+      back: players.slice(frontCount),
+      front: players.slice(0, frontCount)
     }
-    return rows
   }
 
   /**
@@ -473,6 +496,111 @@ export class YouthTeamPage extends UIElement {
         if (target) target.innerHTML = image
       })
     }
+  }
+
+  /**
+   * The photo's backdrop is the club's own academy, cropped out of the same 3D
+   * scene the buildings page orbits — so the squad stands in front of the
+   * building the player actually built, at the level they built it to.
+   *
+   * Rendering it means booting a WebGL scene, which is far too much for a
+   * backdrop on every visit. So the still is shared through
+   * `lib/buildingStill.js`: if the buildings page (or an earlier visit here)
+   * already rendered this level, it costs nothing, and only otherwise is an
+   * off-screen canvas put up — once per level and app session.
+   * @returns {Promise<void>}
+   * @private
+   */
+  async _prepareAcademyBackdrop () {
+    this._academyStill = cachedBuildingStill('youth_academy', this.academyLevel)
+    this._academyCanvas = null
+    if (this._academyStill || (this.youthPlayers || []).length === 0) return
+
+    // The scene needs the stadium and the team it belongs to; the academy level
+    // comes from the youth data we already have.
+    try {
+      const stadiumResponse = await server.getStadium()
+      this._academyCanvas = new StadiumCanvas(
+        stadiumResponse?.stadium || {},
+        this.parent?.data?.team || {},
+        'youth-academy-still-canvas',
+        {
+          interactive: false,
+          focus: 'buildings',
+          buildings: [{type: 'youth_academy', level: this.academyLevel}]
+        }
+      )
+    } catch {
+      // No stadium, no scene — the painted fallback backdrop stays.
+      this._academyCanvas = null
+    }
+  }
+
+  /**
+   * The off-screen host for the academy still. Only rendered when a still has
+   * to be taken; `_captureAcademyBackdrop` tears it down again right after.
+   * @returns {string}
+   * @private
+   */
+  _renderAcademyRenderCanvas () {
+    if (!this._academyCanvas) return ''
+    return `<div class="youth-academy-still" aria-hidden="true">${this._academyCanvas}</div>`
+  }
+
+  /**
+   * @returns {Promise<void>}
+   * @private
+   */
+  async _captureAcademyBackdrop () {
+    const canvas = this._academyCanvas
+    if (!canvas) {
+      this._applyAcademyBackdrop()
+      return
+    }
+    try {
+      canvas.onMounted()
+      if (!(await canvas.whenReady())) return
+      const {width, height} = YouthTeamPage.ACADEMY_STILL
+      const still = canvas.captureBuilding('youth_academy', {
+        level: this.academyLevel,
+        width,
+        height,
+        // Not the portrait framing the buildings page uses: that looks down on
+        // the whole plot, which would put the squad on the roof.
+        view: BUILDING_BACKDROP_VIEWS.youth_academy
+      })
+      if (!still) return
+      rememberBuildingStill('youth_academy', this.academyLevel, still)
+      this._academyStill = still
+      this._applyAcademyBackdrop()
+    } finally {
+      this._disposeAcademyCanvas()
+    }
+  }
+
+  /**
+   * Paint the still onto the photo. Set on the element rather than in the
+   * template because a re-render would drop the WebGL context that produced it,
+   * and because a data URL cannot live in a stylesheet.
+   * @returns {void}
+   * @private
+   */
+  _applyAcademyBackdrop () {
+    if (!this._academyStill) return
+    const photo = document.querySelector(`${this._elementQuery} [data-youth-squad-photo]`)
+    if (photo) photo.style.backgroundImage = `url("${this._academyStill}")`
+  }
+
+  /**
+   * Give the WebGL context back and take the off-screen canvas out of the page.
+   * @returns {void}
+   * @private
+   */
+  _disposeAcademyCanvas () {
+    if (!this._academyCanvas) return
+    this._academyCanvas.onDestroy()
+    this._academyCanvas = null
+    document.querySelector(`${this._elementQuery} .youth-academy-still`)?.remove()
   }
 
   /**

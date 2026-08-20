@@ -7,9 +7,28 @@ vi.mock('../../../lib/gateway.js', () => ({
     promoteYouthPlayer: vi.fn(),
     fireYouthPlayer: vi.fn(),
     setYouthTrainingMode: vi.fn(),
-    setYouthPlayerTrainingMode: vi.fn()
+    setYouthPlayerTrainingMode: vi.fn(),
+    getStadium: vi.fn()
   },
   showServerError: vi.fn()
+}))
+
+// The squad photo's backdrop comes out of the 3D scene; booting Three.js has
+// nothing to do with what these tests check.
+vi.mock('../../../partials/stadiumCanvas.js', () => ({
+  StadiumCanvas: class {
+    constructor (stadium, team, canvasId, options) {
+      this.stadium = stadium
+      this.team = team
+      this.canvasId = canvasId
+      this.options = options
+    }
+    onMounted () {}
+    onDestroy () {}
+    whenReady () { return Promise.resolve(false) }
+    captureBuilding () { return null }
+    toString () { return '<canvas id="youth-academy-still-canvas"></canvas>' }
+  }
 }))
 
 vi.mock('../../../lib/html.js', () => ({
@@ -50,6 +69,8 @@ import { onClick } from '../../../lib/htmlEventHandlers.js'
 import { toast } from '../../../partials/toast.js'
 import { fire } from '../../../lib/event.js'
 import { SERVER_EVENTS } from '../../../lib/serverEvents.js'
+import { cachedBuildingStill, forgetBuildingStills, rememberBuildingStill } from '../../../lib/buildingStill.js'
+import { BUILDING_BACKDROP_VIEWS } from '../../../partials/clubBuildingsScene.js'
 
 describe('YouthTeamPage', () => {
   beforeEach(() => {
@@ -367,6 +388,7 @@ describe('YouthTeamPage', () => {
         academyLevel,
         season: 6
       })
+      server.getStadium.mockResolvedValue({ stadium: { id: 1 } })
       return new YouthTeamPage({ load: vi.fn(), update: vi.fn(), data: { team } })
     }
 
@@ -379,6 +401,10 @@ describe('YouthTeamPage', () => {
       moral: 0.8,
       fitness: 0.7
     }))
+
+    beforeEach(() => {
+      forgetBuildingStills()
+    })
 
     it('renders a portrait placeholder and a name per youth player', async () => {
       const page = makePage(players(4))
@@ -404,13 +430,68 @@ describe('YouthTeamPage', () => {
       expect(listAt).toBeLessThan(html.indexOf('youth-mode-card'))
     })
 
-    it('uses the academy artwork of the current level as backdrop', async () => {
+    it('lines the squad up in at most two rows, the front one wider', async () => {
+      const page = makePage(players(1))
+      await page.load()
+      const split = n => {
+        const { back, front } = page._splitIntoPhotoRows(players(n))
+        return [back.length, front.length]
+      }
+
+      expect(split(1)).toEqual([0, 1])
+      expect(split(2)).toEqual([0, 2])
+      expect(split(3)).toEqual([1, 2])
+      expect(split(4)).toEqual([1, 3])
+      expect(split(5)).toEqual([2, 3])
+      expect(split(6)).toEqual([2, 4])
+      expect(split(11)).toEqual([5, 6])
+    })
+
+    it('keeps every player in exactly one row', async () => {
+      const page = makePage(players(9))
+      await page.load()
+      const { back, front } = page._splitIntoPhotoRows(players(9))
+      expect([...front, ...back].map(p => p.id).sort((a, b) => a - b))
+        .toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9])
+    })
+
+    it('nudges the back row over when centring would align the two rows', async () => {
+      // 3 + 1: a centred single player would stand right above the middle one.
+      const four = makePage(players(4))
+      await four.load()
+      expect(four.template).toContain('youth-squad-row--offset')
+
+      // 2 + 1 and 3 + 2 already stagger by themselves.
+      const three = makePage(players(3))
+      await three.load()
+      expect(three.template).not.toContain('youth-squad-row--offset')
+
+      const five = makePage(players(5))
+      await five.load()
+      expect(five.template).not.toContain('youth-squad-row--offset')
+    })
+
+    it('renders a single row without a back row at all', async () => {
+      const page = makePage(players(2))
+      await page.load()
+      const html = page.template
+      expect(html).toContain('youth-squad-row--front')
+      expect(html).not.toContain('youth-squad-row--back')
+    })
+
+    it('wraps the rows in a scroller so a big squad scrolls sideways', async () => {
+      const page = makePage(players(12))
+      await page.load()
+      expect(page.template).toContain('youth-squad-scroller')
+    })
+
+    it('falls back to the painted academy artwork of the current level', async () => {
       const page = makePage(players(2), { academyLevel: 3 })
       await page.load()
       expect(page.template).toContain('youth-squad-photo--level-3')
     })
 
-    it('clamps the backdrop level to the artwork that exists', async () => {
+    it('clamps the fallback artwork level to what exists', async () => {
       const page = makePage(players(2), { academyLevel: 7 })
       await page.load()
       expect(page.template).toContain('youth-squad-photo--level-3')
@@ -428,22 +509,83 @@ describe('YouthTeamPage', () => {
       expect(page.template).not.toContain('youth-squad-photo')
     })
 
-    it('lines the squad up in two rows up to six players and three above that', async () => {
-      const page = makePage(players(1))
+    it('reuses a cached academy still instead of booting a second scene', async () => {
+      rememberBuildingStill('youth_academy', 2, 'data:image/jpeg;base64,cached')
+
+      const page = makePage(players(3), { academyLevel: 2 })
       await page.load()
 
-      expect(page._splitIntoPhotoRows(players(1)).map(r => r.length)).toEqual([1])
-      expect(page._splitIntoPhotoRows(players(3)).map(r => r.length)).toEqual([2, 1])
-      expect(page._splitIntoPhotoRows(players(6)).map(r => r.length)).toEqual([3, 3])
-      expect(page._splitIntoPhotoRows(players(8)).map(r => r.length)).toEqual([3, 3, 2])
-      expect(page._splitIntoPhotoRows(players(11)).map(r => r.length)).toEqual([4, 4, 3])
+      expect(page._academyStill).toBe('data:image/jpeg;base64,cached')
+      expect(page._academyCanvas).toBeNull()
+      expect(server.getStadium).not.toHaveBeenCalled()
+      expect(page.template).not.toContain('youth-academy-still')
     })
 
-    it('keeps every player in exactly one row', async () => {
-      const page = makePage(players(9))
+    it('puts up an off-screen canvas when no still exists yet', async () => {
+      const page = makePage(players(3), { academyLevel: 2 })
       await page.load()
-      const ids = page._splitIntoPhotoRows(players(9)).flat().map(p => p.id)
-      expect(ids).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9])
+
+      expect(page._academyCanvas).not.toBeNull()
+      expect(page._academyCanvas.options.buildings).toEqual([{ type: 'youth_academy', level: 2 }])
+      expect(page.template).toContain('youth-academy-still')
+    })
+
+    it('takes no still for an empty youth team', async () => {
+      const page = makePage([])
+      await page.load()
+      expect(page._academyCanvas).toBeNull()
+      expect(server.getStadium).not.toHaveBeenCalled()
+    })
+
+    it('keeps the painted fallback when the stadium cannot be loaded', async () => {
+      const page = makePage(players(3))
+      server.getStadium.mockRejectedValue(new Error('offline'))
+      await page.load()
+      expect(page._academyCanvas).toBeNull()
+      expect(page.template).toContain('youth-squad-photo--level-1')
+    })
+
+    it('caches the captured still and gives the WebGL context back', async () => {
+      const page = makePage(players(3), { academyLevel: 2 })
+      await page.load()
+      const canvas = {
+        onMounted: vi.fn(),
+        whenReady: vi.fn().mockResolvedValue(true),
+        captureBuilding: vi.fn(() => 'data:image/jpeg;base64,fresh'),
+        onDestroy: vi.fn()
+      }
+      page._academyCanvas = canvas
+
+      await page._captureAcademyBackdrop()
+
+      expect(canvas.captureBuilding).toHaveBeenCalledWith('youth_academy', expect.objectContaining({
+        level: 2, width: 960, height: 400
+      }))
+      // The backdrop framing, not the buildings page's aerial portrait.
+      const [, options] = canvas.captureBuilding.mock.calls[0]
+      expect(options.view).toEqual(BUILDING_BACKDROP_VIEWS.youth_academy)
+      expect(cachedBuildingStill('youth_academy', 2)).toBe('data:image/jpeg;base64,fresh')
+      expect(page._academyStill).toBe('data:image/jpeg;base64,fresh')
+      expect(canvas.onDestroy).toHaveBeenCalled()
+      expect(page._academyCanvas).toBeNull()
+    })
+
+    it('gives the context back even when the scene never comes up', async () => {
+      const page = makePage(players(3), { academyLevel: 2 })
+      await page.load()
+      const canvas = {
+        onMounted: vi.fn(),
+        whenReady: vi.fn().mockResolvedValue(false),
+        captureBuilding: vi.fn(),
+        onDestroy: vi.fn()
+      }
+      page._academyCanvas = canvas
+
+      await page._captureAcademyBackdrop()
+
+      expect(canvas.captureBuilding).not.toHaveBeenCalled()
+      expect(cachedBuildingStill('youth_academy', 2)).toBeNull()
+      expect(canvas.onDestroy).toHaveBeenCalled()
     })
   })
 })

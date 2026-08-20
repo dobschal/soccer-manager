@@ -883,12 +883,13 @@ export class StadiumCanvas extends UIElement {
    * what an upgrade would look like) or a building the team has not built at all
    * yet — is built on the spot, photographed and taken down again.
    * @param {string} type building type, e.g. `youth_academy`
-   * @param {{level?: number, width?: number, height?: number}} [options] `level`
-   *   defaults to the one the team has.
+   * @param {{level?: number, width?: number, height?: number, view?: {x: number, y: number, z: number, radius: number, elevation: number}}} [options]
+   *   `level` defaults to the one the team has, `view` overrides the building's
+   *   portrait framing (see `BUILDING_BACKDROP_VIEWS`).
    * @returns {string|null} a JPEG data URL, or `null` when there is no scene, no
    *   such building or no 2D canvas to encode with
    */
-  captureBuilding (type, {level, width = CONFIG.snapshot.width, height = CONFIG.snapshot.height} = {}) {
+  captureBuilding (type, {level, width = CONFIG.snapshot.width, height = CONFIG.snapshot.height, view} = {}) {
     if (!this._renderer || !this._scene) return null
     const wanted = Math.max(1, Math.min(3, level || 1))
     // An unbuilt building has no plot in the scene, but its plot is still where it
@@ -911,7 +912,7 @@ export class StadiumCanvas extends UIElement {
 
     try {
       return this._renderStill(
-        buildingSnapshotView(plot, {aspect: width / height, fov: CONFIG.camera.fov}),
+        buildingSnapshotView(plot, {aspect: width / height, fov: CONFIG.camera.fov, view}),
         width,
         height
       )

@@ -157,15 +157,32 @@ randomFactor = 0.9 bis 1.1
 - **TA-YTH-22**: Bestaetigungsdialoge vor Befoerderung und Verkauf.
 - **TA-YTH-30**: Seitenaufbau (#563): Titel, **Mannschaftsfoto**, Spielerliste, Alterswarnung,
   Trainingsmodus-Karten. Die Modus-Karten stehen bewusst unter der Liste.
-- **TA-YTH-31**: Das Mannschaftsfoto zeigt alle Jugendspieler in 2 bis 3 Reihen (hintere Reihe zuerst,
-  nie kleiner als die davor) vor der Akademie-Grafik des aktuellen Ausbaulevels (1-3), je Spieler
-  Portrait, Name und Positions-Badge, darunter Vereinsname und Saison. Ohne Jugendspieler entfaellt
-  das Foto komplett. Die Portraits sind SVGs und werden nach dem Mounten asynchron nachgeladen.
+- **TA-YTH-31**: Das Mannschaftsfoto zeigt alle Jugendspieler in **genau zwei** versetzten Reihen: die
+  vordere (untere) Reihe nimmt `floor(n/2) + 1` Spieler, die hintere den Rest - also 2+1 bei drei,
+  3+1 bei vier, 3+2 bei fuenf Spielern usw. Bis zu zwei Spieler stehen ohne hintere Reihe. Beide
+  Reihen sind zentriert und teilen ein Raster aus gleich breiten Slots, damit die hintere Reihe in den
+  Luecken der vorderen steht; wenn die Differenz der Reihenlaengen gerade ist, wuerde Zentrieren die
+  Reihen uebereinander legen - dann wird die hintere per `.youth-squad-row--offset` um einen halben
+  Slot verschoben.
+- **TA-YTH-32**: Je Spieler Portrait (SVG, nach dem Mounten asynchron nachgeladen), Namensschild und
+  Positions-Badge; unter dem Foto Vereinsname und Saison. Ohne Jugendspieler entfaellt das Foto.
+- **TA-YTH-33**: Passt der Kader nicht in die Breite, scrollt das Foto **horizontal** (beide Reihen
+  gemeinsam in `.youth-squad-scroller`) - es wird nie eine dritte Reihe umgebrochen.
+- **TA-YTH-34**: Der Hintergrund ist das 3D-Standbild der eigenen Jugendakademie
+  (`captureBuilding('youth_academy', {view: BUILDING_BACKDROP_VIEWS.youth_academy})`, 960x400).
+  Es kommt aus dem gemeinsamen Cache (`client/lib/buildingStill.js`); nur wenn dort noch keins liegt,
+  stellt die Seite einmalig ein unsichtbares `StadiumCanvas` auf, fotografiert und gibt den
+  WebGL-Kontext sofort wieder frei. Bis dahin - und ohne WebGL - bleibt das gemalte Level-Bild
+  (`youth-squad-photo--level-1..3`) der Hintergrund.
 
 ### Tests
 
-- Mannschaftsfoto: Platzhalter je Spieler, Reihenaufteilung, Akademie-Level-Klasse (inkl. Clamping),
-  Reihenfolge Foto -> Liste -> Modus-Karten, leerer Kader
+- Mannschaftsfoto: Platzhalter je Spieler, Reihenaufteilung (2+1 / 3+1 / 3+2 / ...), Versatz-Klasse,
+  Scroller, gemaltes Fallback inkl. Level-Clamping, Reihenfolge Foto -> Liste -> Modus-Karten,
+  leerer Kader
+- Akademie-Standbild: Cache-Treffer vermeidet die zweite Szene, sonst Off-Screen-Canvas mit dem
+  Backdrop-Ausschnitt; Standbild wird gecacht und der WebGL-Kontext auch dann freigegeben, wenn die
+  Szene nie hochkommt
 - Training-Effekte auf Level, Moral und Fitness
 - Individueller `training_mode` schlaegt den Team-Fallback; Spieler ohne Modus nutzen den Fallback
 - Slot-Kapazitaet pro Modus je Akademie-Level; volle Modi werden abgelehnt
