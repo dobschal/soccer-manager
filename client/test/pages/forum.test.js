@@ -7,6 +7,7 @@ vi.mock('../../lib/router.js', () => ({
 }))
 
 import { ForumPage } from '../../pages/forum.js'
+import { DISCORD_INVITE_URL } from '../../lib/discord.js'
 
 describe('ForumPage today highlight (#437)', () => {
   let page
@@ -52,7 +53,7 @@ describe('ForumPage today highlight (#437)', () => {
     const html = page._renderNotices()
     expect(html).toContain('forum-notice-dismiss')
     expect(html).toContain('forum-discord-dismiss')
-    expect(html).toContain('discord.com/invite')
+    expect(html).toContain(DISCORD_INVITE_URL)
     vi.unstubAllGlobals()
   })
 

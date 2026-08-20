@@ -6,7 +6,7 @@
  * overlay and forum all point at the same invite (#419).
  */
 
-export const DISCORD_INVITE_URL = 'https://discord.com/invite/2X9c6NFzq'
+export const DISCORD_INVITE_URL = 'https://discord.gg/r7NgarY8w'
 
 /**
  * Inline Discord logo SVG. Uses `currentColor` so it inherits the link color.
