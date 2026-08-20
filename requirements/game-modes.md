@@ -47,7 +47,10 @@ Das Spiel bietet drei Spielmodi: Liga, Pokal und Freundschaftsspiele. Jeder Modu
 - **TA-GM-03**: Liga-Namen: Kombination aus Divisions-Nummer und Himmelsrichtung (z.B. "2. Sued").
 - **TA-GM-04**: Round-Robin-Spielplan: Jedes Team spielt gegen jedes andere 2x (heim/auswaerts).
 - **TA-GM-05**: Punktesystem: Sieg = 3, Unentschieden = 1, Niederlage = 0.
-- **TA-GM-06**: Tabellen-Sortierung: Punkte > Tordifferenz > Geschossene Tore.
+- **TA-GM-06**: Tabellen-Sortierung nach DFB-Regeln: Punkte > Tordifferenz > geschossene Tore >
+  Gesamtergebnis im direkten Vergleich > Auswaertstore im direkten Vergleich > alle Auswaertstore.
+  Ein Entscheidungsspiel (Regel 6 der DFB-Kette) gibt es nicht; bleibt danach Gleichstand,
+  entscheidet die Team-ID, damit die Reihenfolge stabil und cachebar ist.
 - **TA-GM-07**: Tabelle wird nach jedem Spieltag in `standing_cache` gecacht.
 
 ### Auf-/Abstieg

@@ -3700,6 +3700,29 @@ const migrations = [{
       )
     }
   }
+
+}, {
+  name: 'Wiki: extended league table tie-breaks (#560)',
+  async run () {
+    const topic = WIKI_SEED.find(t => t.key === 'leagues')
+    if (!topic) return
+    for (const locale of ['en', 'de']) {
+      const entry = topic[locale]
+      await query(
+        'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+        [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+      )
+    }
+  }
+}, {
+  // The cache stores an already-sorted table, so every row written before the
+  // DFB tie-break chain landed (#560) still carries the old points/goal-diff
+  // only order. Dropping them makes the routes recompute on the next request.
+  name: 'Purge standing_cache for the extended tie-break order (#560)',
+  async run () {
+    const result = await query('DELETE FROM standing_cache')
+    console.log(`🧹 Purged ${result.affectedRows} standing_cache rows so tables re-sort with the new tie-breaks`)
+  }
 }]
 
 /**

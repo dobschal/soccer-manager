@@ -809,7 +809,7 @@ Freundschaften:
 Structure:
 • Every league has exactly 18 teams.
 • A season runs over 34 match days – each team plays every opponent home and away.
-• Points: 3 for a win, 1 for a draw, 0 for a loss. Ties are broken by goal difference, then goals scored.
+• Points: 3 for a win, 1 for a draw, 0 for a loss. Teams level on points are separated in this order: goal difference, goals scored, the aggregate result of the games between them, the away goals from those games, and finally away goals scored overall.
 • The standings are updated after every match day.
 
 Promotion and relegation (at season end):
@@ -827,7 +827,7 @@ Promotion and relegation run automatically when the last match day of the season
 Aufbau:
 • Jede Liga hat genau 18 Teams.
 • Eine Saison läuft über 34 Spieltage – jedes Team spielt gegen jeden Gegner zu Hause und auswärts.
-• Punkte: 3 für einen Sieg, 1 für ein Unentschieden, 0 für eine Niederlage. Bei Gleichstand entscheiden Tordifferenz, dann erzielte Tore.
+• Punkte: 3 für einen Sieg, 1 für ein Unentschieden, 0 für eine Niederlage. Bei Punktgleichheit entscheiden in dieser Reihenfolge: Tordifferenz, erzielte Tore, das Gesamtergebnis im direkten Vergleich, die dort erzielten Auswärtstore und schließlich alle Auswärtstore.
 • Die Tabelle wird nach jedem Spieltag aktualisiert.
 
 Auf- und Abstieg (am Saisonende):

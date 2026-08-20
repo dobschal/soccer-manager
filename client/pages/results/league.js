@@ -109,10 +109,11 @@ export class LeagueResultsPage extends UIElement {
     this.results = results
     this.isCupGameDay = isCupGameDay
     this.cupRound = cupRound
+    // No client-side re-sort: the server already orders both tables by the
+    // full DFB tie-break chain (#560) and a coarser comparator here would only
+    // risk contradicting it.
     this.yesterdayStanding = yesterday
     this.standing = standing
-    this.standing.sort(_sortStanding)
-    this.yesterdayStanding.sort(_sortStanding)
     this.topScorer = topScorers
     this.suspendedPlayers = suspendedPlayers
     this.injuredPlayers = injuredPlayers
@@ -1034,13 +1035,5 @@ export class LeagueResultsPage extends UIElement {
       this.matchDay = undefined
     }
   }
-}
-
-function _sortStanding (s1, s2) {
-  const retVal = s2.points - s1.points
-  if (retVal === 0) {
-    return (s2.goals - s2.against) - (s1.goals - s1.against)
-  }
-  return retVal
 }
 

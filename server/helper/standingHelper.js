@@ -4,70 +4,33 @@ import { calculateStanding } from '../lib/util.js'
 /**
  * Compute league points/position for a single team from a list of played
  * league games. Used by per-team season-history endpoints.
+ *
+ * Delegates to `calculateStanding` so a season-history row is ordered by the
+ * exact same tie-break chain as the league table the user sees (#560), and so
+ * forfeited games are counted the same way.
+ *
  * @param {Array} games
  * @param {Array<{id: number}>} teams
  * @param {number} teamId
  * @returns {{position: number, played: number, won: number, drawn: number, lost: number, goalsFor: number, goalsAgainst: number, points: number}}
  */
 export function calculateStandingForTeam (games, teams, teamId) {
-  const standings = {}
-
-  for (const team of teams) {
-    standings[team.id] = {
-      teamId: team.id,
-      played: 0,
-      won: 0,
-      drawn: 0,
-      lost: 0,
-      goalsFor: 0,
-      goalsAgainst: 0,
-      points: 0
-    }
+  const standing = calculateStanding(games, teams)
+  const position = standing.findIndex(s => String(s.team.id) === String(teamId)) + 1
+  const row = standing.find(s => String(s.team.id) === String(teamId))
+  if (!row) {
+    return { position, played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, points: 0 }
   }
-
-  for (const game of games) {
-    if (!standings[game.team_1_id] || !standings[game.team_2_id]) continue
-    standings[game.team_1_id].played++
-    standings[game.team_2_id].played++
-    standings[game.team_1_id].goalsFor += game.goals_team_1
-    standings[game.team_1_id].goalsAgainst += game.goals_team_2
-    standings[game.team_2_id].goalsFor += game.goals_team_2
-    standings[game.team_2_id].goalsAgainst += game.goals_team_1
-    if (game.goals_team_1 > game.goals_team_2) {
-      standings[game.team_1_id].won++
-      standings[game.team_1_id].points += 3
-      standings[game.team_2_id].lost++
-    } else if (game.goals_team_2 > game.goals_team_1) {
-      standings[game.team_2_id].won++
-      standings[game.team_2_id].points += 3
-      standings[game.team_1_id].lost++
-    } else {
-      standings[game.team_1_id].drawn++
-      standings[game.team_2_id].drawn++
-      standings[game.team_1_id].points++
-      standings[game.team_2_id].points++
-    }
+  return {
+    position,
+    played: row.games,
+    won: row.wins,
+    drawn: row.draws,
+    lost: row.losses,
+    goalsFor: row.goals,
+    goalsAgainst: row.against,
+    points: row.points
   }
-
-  const sorted = Object.values(standings).sort((a, b) => {
-    if (b.points !== a.points) return b.points - a.points
-    const gdA = a.goalsFor - a.goalsAgainst
-    const gdB = b.goalsFor - b.goalsAgainst
-    if (gdB !== gdA) return gdB - gdA
-    return b.goalsFor - a.goalsFor
-  })
-
-  const position = sorted.findIndex(s => s.teamId === teamId) + 1
-  const teamStanding = standings[teamId] || {
-    played: 0,
-    won: 0,
-    drawn: 0,
-    lost: 0,
-    goalsFor: 0,
-    goalsAgainst: 0,
-    points: 0
-  }
-  return { position, ...teamStanding }
 }
 
 /**
