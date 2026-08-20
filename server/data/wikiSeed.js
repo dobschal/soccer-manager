@@ -809,7 +809,7 @@ Freundschaften:
 Structure:
 • Every league has exactly 18 teams.
 • A season runs over 34 match days – each team plays every opponent home and away.
-• Points: 3 for a win, 1 for a draw, 0 for a loss. Ties are broken by goal difference, then goals scored.
+• Points: 3 for a win, 1 for a draw, 0 for a loss. Teams level on points are separated in this order: goal difference, goals scored, the aggregate result of the games between them, the away goals from those games, and finally away goals scored overall.
 • The standings are updated after every match day.
 
 Promotion and relegation (at season end):
@@ -827,7 +827,7 @@ Promotion and relegation run automatically when the last match day of the season
 Aufbau:
 • Jede Liga hat genau 18 Teams.
 • Eine Saison läuft über 34 Spieltage – jedes Team spielt gegen jeden Gegner zu Hause und auswärts.
-• Punkte: 3 für einen Sieg, 1 für ein Unentschieden, 0 für eine Niederlage. Bei Gleichstand entscheiden Tordifferenz, dann erzielte Tore.
+• Punkte: 3 für einen Sieg, 1 für ein Unentschieden, 0 für eine Niederlage. Bei Punktgleichheit entscheiden in dieser Reihenfolge: Tordifferenz, erzielte Tore, das Gesamtergebnis im direkten Vergleich, die dort erzielten Auswärtstore und schließlich alle Auswärtstore.
 • Die Tabelle wird nach jedem Spieltag aktualisiert.
 
 Auf- und Abstieg (am Saisonende):
@@ -1331,7 +1331,7 @@ Attendance and income:
 Home advantage:
 • A well-filled stadium boosts your team strength by up to +10% (more fans, more boost), while a stadium below 50% capacity gives a penalty of up to −10%. Only the seats that were open count — closing a stand for construction does not push you towards the penalty.
 
-The 3D view at the top shows your ground as you have built it, your club emblem lit above every entrance in the stands' back walls. The slider under it sets the time of day – dawn, day, dusk or night; it starts on whatever matches your own clock. By day the floodlights are off.`
+The 3D view at the top shows your ground as you have built it, your club emblem lit above every entrance in the stands' back walls. The slider under it sets the time of day – dawn, day, dusk or night; it starts on whatever matches your own clock. By day the floodlights are off; after dark the concrete backs light up too, windows scattered over the concourse floors and a lit stair tower at either end of every stand.`
     },
     de: {
       title: 'Stadion',
@@ -1356,7 +1356,7 @@ Zuschauer und Einnahmen:
 Heimvorteil:
 • Ein gut gefülltes Stadion erhöht deine Teamstärke um bis zu +10% (mehr Fans, mehr Bonus), während ein Stadion unter 50% Auslastung einen Malus von bis zu −10% bringt. Gezählt werden nur die geöffneten Plätze — eine Tribüne für den Ausbau zu sperren treibt dich also nicht in den Malus.
 
-Die 3D-Ansicht oben zeigt dein Stadion so, wie du es gebaut hast – über jedem Eingang in den Tribünen-Rückwänden hängt dein beleuchtetes Vereinswappen. Mit dem Regler darunter stellst du die Tageszeit ein – Morgendämmerung, Tag, Abenddämmerung oder Nacht; beim Öffnen passt sie zu deiner eigenen Uhrzeit. Tagsüber ist das Flutlicht aus.`
+Die 3D-Ansicht oben zeigt dein Stadion so, wie du es gebaut hast – über jedem Eingang in den Tribünen-Rückwänden hängt dein beleuchtetes Vereinswappen. Mit dem Regler darunter stellst du die Tageszeit ein – Morgendämmerung, Tag, Abenddämmerung oder Nacht; beim Öffnen passt sie zu deiner eigenen Uhrzeit. Tagsüber ist das Flutlicht aus; nach Einbruch der Dunkelheit leuchten auch die Betonrückseiten auf – einzelne Fenster in den Umgängen und je ein erleuchteter Treppenturm an beiden Enden jeder Tribüne.`
     }
   },
 
@@ -1546,6 +1546,8 @@ Sieh dir die Liste regelmäßig an, damit du nie mit leerer Bank oder müder Auf
       subtitle: 'Develop young talents in your academy',
       text: `Your Youth Academy produces young talents you can develop and later promote to your senior squad.
 
+On the Youth Team page the whole squad lines up for a team photo in front of your academy, the player list follows below it, and the training-mode cards sit at the bottom of the page.
+
 Youth attributes:
 • Level – their current strength (shown as a decimal value).
 • Talent – their growth potential. This is hidden, so you have to judge a youngster by how fast they actually improve.
@@ -1554,8 +1556,9 @@ Youth attributes:
 Training modes (set per youngster):
 • Training: strong level growth, but morale drops a little.
 • Friendly match: standard growth and a morale boost, but costs fitness.
-• Rest: little growth, but recovers fitness and morale.
+• Rest: little growth, but recovers fitness and morale. This is the default — everyone you do not put into training or a friendly match is resting, so rest has no slot limit.
 • A good rhythm is roughly 2× training, 1× friendly, 1× rest.
+• Training and friendly match do have a limit, and it grows with your Youth Academy. Each mode card shows one dropdown per assigned player plus one free one below them, so there is always exactly one slot ready to fill.
 
 Age and promotion:
 • Youth players start at age 15. From age 16 you can promote them to your senior squad.
@@ -1575,6 +1578,8 @@ The Youth Academy building (see Buildings) determines how many and how strong th
       subtitle: 'Entwickle junge Talente in deiner Akademie',
       text: `Deine Jugendakademie bringt junge Talente hervor, die du entwickeln und später in deinen Profikader holen kannst.
 
+Auf der Seite Jugendmannschaft stellt sich der komplette Kader zum Mannschaftsfoto vor deiner Akademie auf, darunter folgt die Spielerliste, und die Karten für die Trainingsmodi stehen am Ende der Seite.
+
 Eigenschaften der Jugendspieler:
 • Level – die aktuelle Stärke (als Dezimalwert angezeigt).
 • Talent – das Entwicklungspotenzial. Es ist verborgen, du musst ein Talent also danach beurteilen, wie schnell es sich tatsächlich verbessert.
@@ -1583,8 +1588,9 @@ Eigenschaften der Jugendspieler:
 Trainingsmodi (je Talent einstellbar):
 • Training: starkes Level-Wachstum, aber die Moral sinkt etwas.
 • Freundschaftsspiel: normales Wachstum und ein Moral-Schub, kostet aber Fitness.
-• Ruhe: kaum Wachstum, regeneriert aber Fitness und Moral.
+• Ruhe: kaum Wachstum, regeneriert aber Fitness und Moral. Ruhe ist der Standard — wer nicht im Training oder im Freundschaftsspiel steht, ruht, deshalb hat Ruhe kein Slot-Limit.
 • Ein guter Rhythmus ist etwa 2× Training, 1× Freundschaftsspiel, 1× Ruhe.
+• Training und Freundschaftsspiel haben ein Limit, das mit der Jugendakademie waechst. Jede Modus-Karte zeigt ein Auswahlfeld pro zugewiesenem Spieler und darunter ein freies, es steht also immer genau ein Slot bereit.
 
 Alter und Beförderung:
 • Jugendspieler starten mit 15 Jahren. Ab 16 kannst du sie in deinen Profikader befördern.

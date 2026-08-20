@@ -7,9 +7,28 @@ vi.mock('../../../lib/gateway.js', () => ({
     promoteYouthPlayer: vi.fn(),
     fireYouthPlayer: vi.fn(),
     setYouthTrainingMode: vi.fn(),
-    setYouthPlayerTrainingMode: vi.fn()
+    setYouthPlayerTrainingMode: vi.fn(),
+    getStadium: vi.fn()
   },
   showServerError: vi.fn()
+}))
+
+// The squad photo's backdrop comes out of the 3D scene; booting Three.js has
+// nothing to do with what these tests check.
+vi.mock('../../../partials/stadiumCanvas.js', () => ({
+  StadiumCanvas: class {
+    constructor (stadium, team, canvasId, options) {
+      this.stadium = stadium
+      this.team = team
+      this.canvasId = canvasId
+      this.options = options
+    }
+    onMounted () {}
+    onDestroy () {}
+    whenReady () { return Promise.resolve(false) }
+    captureBuilding () { return null }
+    toString () { return '<canvas id="youth-academy-still-canvas"></canvas>' }
+  }
 }))
 
 vi.mock('../../../lib/html.js', () => ({
@@ -50,6 +69,8 @@ import { onClick } from '../../../lib/htmlEventHandlers.js'
 import { toast } from '../../../partials/toast.js'
 import { fire } from '../../../lib/event.js'
 import { SERVER_EVENTS } from '../../../lib/serverEvents.js'
+import { cachedBuildingStill, forgetBuildingStills, rememberBuildingStill } from '../../../lib/buildingStill.js'
+import { BUILDING_BACKDROP_VIEWS } from '../../../partials/clubBuildingsScene.js'
 
 describe('YouthTeamPage', () => {
   beforeEach(() => {
@@ -163,23 +184,50 @@ describe('YouthTeamPage', () => {
       expect(toast).toHaveBeenCalledWith('youthTeam.trainingModeUpdated', 'success')
     })
 
-    it('unassigns the player when choosing the empty option', async () => {
+    it('falls back to rest instead of unassigning', async () => {
       server.setYouthPlayerTrainingMode.mockResolvedValue({ success: true })
       const players = [{ id: 1, training_mode: 'training' }]
-      const page = makePage(players, { training: 2, friendly_match: 2, rest: 4 })
+      const page = makePage(players, { training: 2, friendly_match: 2, rest: null })
 
       await page._handlePlayerModeChange(players[0], '')
 
-      expect(server.setYouthPlayerTrainingMode).toHaveBeenCalledWith(1, null)
+      expect(server.setYouthPlayerTrainingMode).toHaveBeenCalledWith(1, 'rest')
     })
 
     it('does nothing when the mode is unchanged', async () => {
       const players = [{ id: 1, training_mode: 'training' }]
-      const page = makePage(players, { training: 2, friendly_match: 2, rest: 4 })
+      const page = makePage(players, { training: 2, friendly_match: 2, rest: null })
 
       await page._handlePlayerModeChange(players[0], 'training')
 
       expect(server.setYouthPlayerTrainingMode).not.toHaveBeenCalled()
+    })
+
+    it('does nothing when a player without a mode is set to rest (rest is the default)', async () => {
+      const players = [{ id: 1, training_mode: null }]
+      const page = makePage(players, { training: 2, friendly_match: 2, rest: null })
+
+      await page._handlePlayerModeChange(players[0], 'rest')
+
+      expect(server.setYouthPlayerTrainingMode).not.toHaveBeenCalled()
+    })
+
+    it('never kicks anyone out of rest, since rest is unlimited', async () => {
+      server.setYouthPlayerTrainingMode.mockResolvedValue({ success: true })
+      const players = [
+        { id: 1, name: 'Newcomer', training_mode: 'training' },
+        { id: 2, name: 'Alpha', training_mode: 'rest' },
+        { id: 3, name: 'Bravo', training_mode: null },
+        { id: 4, name: 'Charlie', training_mode: 'rest' },
+        { id: 5, name: 'Delta', training_mode: 'rest' },
+        { id: 6, name: 'Echo', training_mode: 'rest' }
+      ]
+      const page = makePage(players, { training: 2, friendly_match: 2, rest: null })
+
+      await page._handlePlayerModeChange(players[0], 'rest')
+
+      expect(server.setYouthPlayerTrainingMode).toHaveBeenCalledTimes(1)
+      expect(server.setYouthPlayerTrainingMode).toHaveBeenCalledWith(1, 'rest')
     })
 
     it('leaves the caller responsible for reloading (server event drives updates)', async () => {
@@ -237,6 +285,115 @@ describe('YouthTeamPage', () => {
 
       expect(players[0].training_mode).toBe('rest')
       expect(page._refreshModeSelector).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('mode cards show n + 1 slots', () => {
+    function makeCardPage (youthPlayers, slotsByMode = { training: 2, friendly_match: 2, rest: null }) {
+      const page = new YouthTeamPage({ load: vi.fn(), update: vi.fn() })
+      page.youthPlayers = youthPlayers
+      page.slotsByMode = slotsByMode
+      return page
+    }
+
+    const countSelects = html => (html.match(/<select/g) || []).length
+
+    const restCard = page => page._renderModeCard(
+      { key: 'rest', icon: 'fa-bed', effects: { level: 0, fitness: 2, moral: 1 } }
+    )
+    const trainingCard = page => page._renderModeCard(
+      { key: 'training', icon: 'fa-bolt', effects: { level: 2, fitness: 1, moral: -1 } }
+    )
+
+    it('shows one spare select below the assigned players', () => {
+      const page = makeCardPage([
+        { id: 1, name: 'A', level: 5, age: 16, training_mode: 'rest' },
+        { id: 2, name: 'B', level: 5, age: 16, training_mode: 'training' }
+      ])
+      // One resting player -> its own select plus one free one.
+      expect(countSelects(restCard(page))).toBe(2)
+    })
+
+    it('counts players without a mode as resting', () => {
+      const page = makeCardPage([
+        { id: 1, name: 'A', level: 5, age: 16, training_mode: null },
+        { id: 2, name: 'B', level: 5, age: 16, training_mode: 'training' }
+      ])
+      const html = restCard(page)
+      expect(html).toContain('A · Lv 5.0 · 16y')
+      expect(countSelects(html)).toBe(2)
+    })
+
+    it('drops the spare select when there is nobody left to assign', () => {
+      const page = makeCardPage([
+        { id: 1, name: 'A', level: 5, age: 16, training_mode: 'rest' },
+        { id: 2, name: 'B', level: 5, age: 16, training_mode: null }
+      ])
+      // Everyone rests already, so a free rest slot could not be filled.
+      expect(countSelects(restCard(page))).toBe(2)
+    })
+
+    it('shows a single free select for an empty mode', () => {
+      const page = makeCardPage([
+        { id: 1, name: 'A', level: 5, age: 16, training_mode: 'rest' }
+      ])
+      const html = trainingCard(page)
+      expect(countSelects(html)).toBe(1)
+      expect(html).toContain('youthTeam.slotEmpty')
+    })
+
+    it('offers the academy upgrade instead of a free select once the mode is full', () => {
+      const page = makeCardPage([
+        { id: 1, name: 'A', level: 5, age: 16, training_mode: 'training' },
+        { id: 2, name: 'B', level: 5, age: 16, training_mode: 'training' },
+        { id: 3, name: 'C', level: 5, age: 16, training_mode: 'rest' }
+      ])
+      const html = trainingCard(page)
+      expect(countSelects(html)).toBe(3)
+      expect(html).toContain('youthTeam.slotLocked')
+    })
+
+    it('shows no extra select at all when a maxed-out mode is full', () => {
+      const players = [1, 2, 3, 4].map(id => ({ id, name: `P${id}`, level: 5, age: 16, training_mode: 'training' }))
+      const page = makeCardPage(players, { training: 4, friendly_match: 4, rest: null })
+      const html = trainingCard(page)
+      expect(countSelects(html)).toBe(4)
+      expect(html).not.toContain('youthTeam.slotLocked')
+    })
+
+    it('never shows the rest card as full', () => {
+      const players = [1, 2, 3, 4, 5, 6].map(id => ({ id, name: `P${id}`, level: 5, age: 16, training_mode: id === 6 ? 'training' : 'rest' }))
+      const page = makeCardPage(players)
+      const html = restCard(page)
+      expect(countSelects(html)).toBe(6)
+      expect(html).not.toContain('youthTeam.slotLocked')
+      // Five resting players, no limit behind the slash.
+      expect(html).toContain('>5</span>')
+    })
+
+    it('offers no empty option on an occupied rest slot — resting is the floor', () => {
+      const page = makeCardPage([
+        { id: 1, name: 'A', level: 5, age: 16, training_mode: 'rest' },
+        { id: 2, name: 'B', level: 5, age: 16, training_mode: 'training' }
+      ])
+      const restSelects = restCard(page).split('<select').slice(1)
+      expect(restSelects[0]).not.toContain('youthTeam.slotEmpty')
+      expect(restSelects[1]).toContain('youthTeam.slotEmpty')
+      // A training slot can still be cleared — the player then rests.
+      expect(trainingCard(page).split('<select')[1]).toContain('youthTeam.slotEmpty')
+    })
+
+    it('leaves players already in the mode out of the other slots\' options', () => {
+      const page = makeCardPage([
+        { id: 1, name: 'Alpha', level: 5, age: 16, training_mode: 'training' },
+        { id: 2, name: 'Bravo', level: 5, age: 16, training_mode: 'rest' }
+      ])
+      const [own, spare] = trainingCard(page).split('<select').slice(1)
+      expect(own).toContain('Alpha')
+      expect(own).toContain('Bravo')
+      // Alpha already trains, so putting them into the free slot is no option.
+      expect(spare).not.toContain('Alpha')
+      expect(spare).toContain('Bravo')
     })
   })
 
@@ -356,6 +513,226 @@ describe('YouthTeamPage', () => {
       await page.load()
 
       expect(page.template).not.toContain('youthTeam.retirementWarning')
+    })
+  })
+
+  describe('squad photo (#563)', () => {
+    function makePage (youthPlayers, { academyLevel = 1, team = { id: 4, name: 'Test FC' } } = {}) {
+      server.getYouthTeam.mockResolvedValue({
+        youthPlayers,
+        trainingMode: 'rest',
+        academyLevel,
+        season: 6
+      })
+      server.getStadium.mockResolvedValue({ stadium: { id: 1 } })
+      return new YouthTeamPage({ load: vi.fn(), update: vi.fn(), data: { team } })
+    }
+
+    const players = count => Array.from({ length: count }, (_, i) => ({
+      id: i + 1,
+      name: `Youth ${i + 1}`,
+      position: 'CM',
+      age: 16,
+      level: 15,
+      moral: 0.8,
+      fitness: 0.7
+    }))
+
+    beforeEach(() => {
+      forgetBuildingStills()
+    })
+
+    it('renders a portrait placeholder and a name per youth player', async () => {
+      const page = makePage(players(4))
+      await page.load()
+      const html = page.template
+
+      for (let id = 1; id <= 4; id++) {
+        expect(html).toContain(`data-youth-portrait="${id}"`)
+        expect(html).toContain(`Youth ${id}`)
+      }
+    })
+
+    it('puts the photo above the player list and the mode cards below it', async () => {
+      const page = makePage(players(3))
+      await page.load()
+      const html = page.template
+
+      // The player list renders as a nested UIElement, so its spot in the
+      // template is the `<template>` placeholder.
+      const listAt = html.indexOf('<template')
+      expect(listAt).toBeGreaterThan(-1)
+      expect(html.indexOf('youth-squad-photo')).toBeLessThan(listAt)
+      expect(listAt).toBeLessThan(html.indexOf('youth-mode-card'))
+    })
+
+    it('lines the squad up in at most two rows, the front one wider', async () => {
+      const page = makePage(players(1))
+      await page.load()
+      const split = n => {
+        const { back, front } = page._splitIntoPhotoRows(players(n))
+        return [back.length, front.length]
+      }
+
+      expect(split(1)).toEqual([0, 1])
+      expect(split(2)).toEqual([0, 2])
+      expect(split(3)).toEqual([1, 2])
+      expect(split(4)).toEqual([1, 3])
+      expect(split(5)).toEqual([2, 3])
+      expect(split(6)).toEqual([2, 4])
+      expect(split(11)).toEqual([5, 6])
+    })
+
+    it('keeps every player in exactly one row', async () => {
+      const page = makePage(players(9))
+      await page.load()
+      const { back, front } = page._splitIntoPhotoRows(players(9))
+      expect([...front, ...back].map(p => p.id).sort((a, b) => a - b))
+        .toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9])
+    })
+
+    it('nudges the back row over when centring would align the two rows', async () => {
+      // 3 + 1: a centred single player would stand right above the middle one.
+      const four = makePage(players(4))
+      await four.load()
+      expect(four.template).toContain('youth-squad-row--offset')
+
+      // 2 + 1 and 3 + 2 already stagger by themselves.
+      const three = makePage(players(3))
+      await three.load()
+      expect(three.template).not.toContain('youth-squad-row--offset')
+
+      const five = makePage(players(5))
+      await five.load()
+      expect(five.template).not.toContain('youth-squad-row--offset')
+    })
+
+    it('renders a single row without a back row at all', async () => {
+      const page = makePage(players(2))
+      await page.load()
+      const html = page.template
+      expect(html).toContain('youth-squad-row--front')
+      expect(html).not.toContain('youth-squad-row--back')
+    })
+
+    it('wraps the rows in a scroller so a big squad scrolls sideways', async () => {
+      const page = makePage(players(12))
+      await page.load()
+      expect(page.template).toContain('youth-squad-scroller')
+    })
+
+    it('leaves the backdrop to the stylesheet until a still exists', async () => {
+      // A painted stand-in would flash and then be swapped out — the frame stays
+      // plain until the 3D still is there.
+      const page = makePage(players(2), { academyLevel: 3 })
+      await page.load()
+      const html = page.template
+      expect(html).not.toContain('youth-academy-level')
+      expect(html).not.toContain('background-image')
+    })
+
+    it('shows the surname and the first initial only', async () => {
+      const page = makePage([{ ...players(1)[0], name: 'Luciano Maria Mendes' }])
+      await page.load()
+      const photo = page._renderSquadPhoto()
+      expect(photo).toContain('L. Mendes')
+      // Only the photo is abbreviated — the roster below it keeps full names.
+      expect(photo).not.toContain('Luciano Maria Mendes')
+      expect(page._renderModeSelectorContent()).toContain('Luciano Maria Mendes')
+    })
+
+    it('names the club and the season under the photo', async () => {
+      const page = makePage(players(2))
+      await page.load()
+      expect(page.template).toContain('Test FC · youthTeam.squadPhotoCaption')
+    })
+
+    it('renders no photo at all for an empty youth team', async () => {
+      const page = makePage([])
+      await page.load()
+      expect(page.template).not.toContain('youth-squad-photo')
+    })
+
+    it('reuses a cached academy still instead of booting a second scene', async () => {
+      rememberBuildingStill('youth_academy', 2, 'data:image/jpeg;base64,cached')
+
+      const page = makePage(players(3), { academyLevel: 2 })
+      await page.load()
+
+      expect(page._academyStill).toBe('data:image/jpeg;base64,cached')
+      expect(page._academyCanvas).toBeNull()
+      expect(server.getStadium).not.toHaveBeenCalled()
+      expect(page.template).not.toContain('youth-academy-still')
+      // Straight into the markup, so a cached backdrop needs no grey first frame.
+      expect(page.template).toContain("background-image: url('data:image/jpeg;base64,cached')")
+    })
+
+    it('puts up an off-screen canvas when no still exists yet', async () => {
+      const page = makePage(players(3), { academyLevel: 2 })
+      await page.load()
+
+      expect(page._academyCanvas).not.toBeNull()
+      expect(page._academyCanvas.options.buildings).toEqual([{ type: 'youth_academy', level: 2 }])
+      expect(page.template).toContain('youth-academy-still')
+    })
+
+    it('takes no still for an empty youth team', async () => {
+      const page = makePage([])
+      await page.load()
+      expect(page._academyCanvas).toBeNull()
+      expect(server.getStadium).not.toHaveBeenCalled()
+    })
+
+    it('keeps the painted fallback when the stadium cannot be loaded', async () => {
+      const page = makePage(players(3))
+      server.getStadium.mockRejectedValue(new Error('offline'))
+      await page.load()
+      expect(page._academyCanvas).toBeNull()
+      expect(page.template).toContain('youth-squad-photo')
+      expect(page.template).not.toContain('background-image')
+    })
+
+    it('caches the captured still and gives the WebGL context back', async () => {
+      const page = makePage(players(3), { academyLevel: 2 })
+      await page.load()
+      const canvas = {
+        onMounted: vi.fn(),
+        whenReady: vi.fn().mockResolvedValue(true),
+        captureBuilding: vi.fn(() => 'data:image/jpeg;base64,fresh'),
+        onDestroy: vi.fn()
+      }
+      page._academyCanvas = canvas
+
+      await page._captureAcademyBackdrop()
+
+      expect(canvas.captureBuilding).toHaveBeenCalledWith('youth_academy', expect.objectContaining({
+        level: 2, width: 1920, height: 800
+      }))
+      // The backdrop framing, not the buildings page's aerial portrait.
+      const [, options] = canvas.captureBuilding.mock.calls[0]
+      expect(options.view).toEqual(BUILDING_BACKDROP_VIEWS.youth_academy)
+      expect(cachedBuildingStill('youth_academy', 2)).toBe('data:image/jpeg;base64,fresh')
+      expect(page._academyStill).toBe('data:image/jpeg;base64,fresh')
+      expect(canvas.onDestroy).toHaveBeenCalled()
+      expect(page._academyCanvas).toBeNull()
+    })
+
+    it('gives the context back even when the scene never comes up', async () => {
+      const page = makePage(players(3), { academyLevel: 2 })
+      await page.load()
+      const canvas = {
+        onMounted: vi.fn(),
+        whenReady: vi.fn().mockResolvedValue(false),
+        captureBuilding: vi.fn(),
+        onDestroy: vi.fn()
+      }
+      page._academyCanvas = canvas
+
+      await page._captureAcademyBackdrop()
+
+      expect(canvas.captureBuilding).not.toHaveBeenCalled()
+      expect(cachedBuildingStill('youth_academy', 2)).toBeNull()
+      expect(canvas.onDestroy).toHaveBeenCalled()
     })
   })
 })

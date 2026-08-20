@@ -104,12 +104,12 @@ describe('youth routes', () => {
       expect(result.youthPlayers[0].age).toBeDefined()
       expect(result.trainingMode).toBe('training')
       expect(result.academyLevel).toBe(2)
-      // Level 2: training/friendly = 3 (academyLevel + 1), rest is always 4
-      expect(result.slotsByMode).toEqual({ training: 3, friendly_match: 3, rest: 4 })
+      // Level 2: training/friendly = 3 (academyLevel + 1), rest is unlimited
+      expect(result.slotsByMode).toEqual({ training: 3, friendly_match: 3, rest: null })
       expect(result.season).toBe(2)
     })
 
-    it('rest mode always has 4 slots regardless of academy level', async () => {
+    it('rest mode is unlimited regardless of academy level', async () => {
       const team = testData.team()
       getTeam.mockResolvedValue(team)
       getGameDayAndSeason.mockResolvedValue({ season: 1 })
@@ -119,7 +119,7 @@ describe('youth routes', () => {
       const req = createMockRequest()
       const result = await handlers.getYouthTeam(req)
 
-      expect(result.slotsByMode.rest).toBe(4)
+      expect(result.slotsByMode.rest).toBeNull()
       expect(result.slotsByMode.training).toBe(2)
       expect(result.slotsByMode.friendly_match).toBe(2)
     })
@@ -134,7 +134,7 @@ describe('youth routes', () => {
       const req = createMockRequest()
       const result = await handlers.getYouthTeam(req)
 
-      expect(result.slotsByMode).toEqual({ training: 4, friendly_match: 4, rest: 4 })
+      expect(result.slotsByMode).toEqual({ training: 4, friendly_match: 4, rest: null })
     })
 
     it('defaults training mode to rest when not set', async () => {
@@ -254,7 +254,6 @@ describe('youth routes', () => {
       getTeam.mockResolvedValue(team)
       getYouthPlayerById.mockResolvedValue({ id: 11, team_id: 7 })
       getYouthAcademyLevel.mockResolvedValue(1)
-      // 3 players already resting — still under the 4-slot rest cap.
       countYouthPlayersInMode.mockResolvedValue(3)
 
       const req = createMockRequest()
@@ -263,16 +262,22 @@ describe('youth routes', () => {
       expect(result.success).toBe(true)
     })
 
-    it('rejects rest assignment only when all 4 rest slots are full', async () => {
+    it('never rejects a rest assignment — rest is the default mode and unlimited', async () => {
       const team = testData.team({ id: 7 })
       getTeam.mockResolvedValue(team)
       getYouthPlayerById.mockResolvedValue({ id: 11, team_id: 7 })
       getYouthAcademyLevel.mockResolvedValue(1)
-      countYouthPlayersInMode.mockResolvedValue(4)
+      // Even a whole squad already resting must not block another one: a player
+      // without an own mode rests anyway, so the mode cannot be "full".
+      countYouthPlayersInMode.mockResolvedValue(9)
 
       const req = createMockRequest()
-      await expect(handlers.setYouthPlayerTrainingMode(11, 'rest', req))
-        .rejects.toMatchObject({ message: 'error.youthModeSlotsFull' })
+      const result = await handlers.setYouthPlayerTrainingMode(11, 'rest', req)
+
+      expect(result.success).toBe(true)
+      expect(setYouthPlayerTrainingMode).toHaveBeenCalledWith(11, 'rest')
+      // The cap is not even looked up for rest.
+      expect(countYouthPlayersInMode).not.toHaveBeenCalled()
     })
 
     it('rejects youth player not owned by team', async () => {

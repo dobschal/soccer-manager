@@ -10,6 +10,7 @@ import {renderEmblem} from './emblem.js'
 import {preloadAllActionCardSvgs, renderActionCardSvg} from '../lib/actionCardSvg.js'
 import {renderCurrencyInput, setupCurrencyInput} from './currencyInput.js'
 import {SERVER_EVENTS} from '../lib/serverEvents.js'
+import {actionCardLabel} from '../lib/actionCardLabels.js'
 
 /**
  * Action-card marketplace section (embedded on the "Actions" page): browse
@@ -154,7 +155,7 @@ export class ActionCardMarket extends UIElement {
    * @returns {string}
    */
   _cardNames (cards) {
-    return (cards ?? []).map(c => t('actionCards.type.' + this._typeKey(c.action))).join(', ')
+    return (cards ?? []).map(c => actionCardLabel(c.action)).join(', ')
   }
 
   _renderMyOffers () {
@@ -219,7 +220,7 @@ export class ActionCardMarket extends UIElement {
       ;
     }
     (bid.cards ?? []).forEach(c => {
-      parts.push(`<span class="badge bg-secondary">${t('actionCards.type.' + this._typeKey(c.action))}</span>`)
+      parts.push(`<span class="badge bg-secondary">${actionCardLabel(c.action)}</span>`)
     })
     if (parts.length === 0) parts.push(`<span class="text-muted small">—</span>`)
     return `<span class="ms-2 d-inline-flex flex-wrap gap-1 align-middle">${parts.join('')}</span>`
@@ -341,7 +342,7 @@ export class ActionCardMarket extends UIElement {
   _renderOfferFilter () {
     const types = [...new Set(this._offers.flatMap(offer => (offer.cards ?? []).map(c => c.action)))]
     const options = types.map(action =>
-      `<option value="${action}" ${this._offerTypeFilter === action ? 'selected' : ''}>${t('actionCards.type.' + this._typeKey(action))}</option>`
+      `<option value="${action}" ${this._offerTypeFilter === action ? 'selected' : ''}>${actionCardLabel(action)}</option>`
     ).join('')
     return `
       <div class="mb-3">
@@ -376,7 +377,7 @@ export class ActionCardMarket extends UIElement {
     const renderChip = (card) => `
       <button type="button" class="card-market-pick${selectedCards.has(card.id) ? ' card-market-pick--selected' : ''}" data-card-id="${card.id}">
         ${this._cardThumb(card.action)}
-        <span class="small">${t('actionCards.type.' + this._typeKey(card.action))}</span>
+        <span class="small">${actionCardLabel(card.action)}</span>
       </button>
     `
 
@@ -445,7 +446,7 @@ export class ActionCardMarket extends UIElement {
     const renderChip = (card) => `
       <button type="button" class="card-market-pick${selectedCards.has(card.id) ? ' card-market-pick--selected' : ''}" data-card-id="${card.id}">
         ${this._cardThumb(card.action)}
-        <span class="small">${t('actionCards.type.' + this._typeKey(card.action))}</span>
+        <span class="small">${actionCardLabel(card.action)}</span>
       </button>
     `
 
@@ -595,38 +596,7 @@ export class ActionCardMarket extends UIElement {
       toast(e.message ?? t('cardMarket.actionFailed'), 'error')
     }
   }
-
-  /**
-   * Map a full action string to its `actionCards.type.*` i18n sub-key.
-   * @param {string} action
-   * @returns {string}
-   */
-  _typeKey (action) {
-    return TYPE_KEYS[action] ?? action
-  }
 }
 
 /** Number of offers shown per page in the paginated "All offers" tab (#519). */
 const OFFERS_PER_PAGE = 6
-
-/**
- * Action string → `actionCards.type.<key>` i18n sub-key. Mirrors the map in
- * the action-card views so marketplace listings show friendly names.
- * @type {Object<string, string>}
- */
-const TYPE_KEYS = {
-  LEVEL_UP_PLAYER_100: 'legendaryMastery',
-  LEVEL_UP_PLAYER_70: 'epicAdvancement',
-  LEVEL_UP_PLAYER_40: 'basicPromotion',
-  NEW_YOUTH_PLAYER_1: 'youthProspect1',
-  NEW_YOUTH_PLAYER_2: 'youthProspect2',
-  NEW_YOUTH_PLAYER_3: 'youthProspect3',
-  FRESHNESS_5: 'quickRecovery',
-  FRESHNESS_10: 'energyBoost',
-  FRESHNESS_20: 'fullRecovery',
-  BONUS_100K: 'cashBonus',
-  MILLION_BONUS: 'millionBonus',
-  STAR_PLAYER: 'starPlayer',
-  MOTIVATING_SPEECH: 'motivatingSpeech',
-  SPY: 'spy'
-}

@@ -54,6 +54,7 @@ import { BuildingsPage } from '../../../pages/club/buildings.js'
 import { server } from '../../../lib/gateway.js'
 import { el } from '../../../lib/html.js'
 import { showTutorialIfNeeded } from '../../../partials/tutorialOverlay.js'
+import { forgetBuildingStills } from '../../../lib/buildingStill.js'
 
 describe('BuildingsPage', () => {
   beforeEach(() => {
@@ -178,6 +179,9 @@ describe('BuildingsPage building stills', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    // Stills are cached app-wide (other pages read them, see #563), so one
+    // test's render would otherwise stand in for the next one's fallback.
+    forgetBuildingStills()
     server.getBuildings.mockResolvedValue({
       buildings: [
         { type: 'training_area', level: 1 },

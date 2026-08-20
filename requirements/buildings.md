@@ -176,6 +176,14 @@ der Gebaeude liegt in `client/partials/clubBuildingsScene.js`.
     es steht nicht in der Szene, sein Grundstueck ist aber trotzdem berechenbar (`clubBuildingPlot`),
     also wird es dort kurz aufgestellt, fotografiert und wieder abgeraeumt. Nur so kann die Karte vor
     dem Bau zeigen, was das Geld bringt.
+  - Standbilder werden app-weit in `client/lib/buildingStill.js` gecacht (Key `typ:level`, nur im
+    Speicher). Andere Seiten koennen sich keine eigene WebGL-Szene leisten und lesen von dort - die
+    Jugendmannschaft nutzt das Standbild der Jugendakademie als Hintergrund ihres Mannschaftsfotos
+    (#563). Wer ein Standbild rendert, legt es dort ab.
+  - `captureBuilding` nimmt optional einen abweichenden Bildausschnitt (`view`). Fuer die Verwendung als
+    Hintergrund gibt es `BUILDING_BACKDROP_VIEWS`: deutlich flacherer Hoehenwinkel als beim Portraet,
+    damit das Gebaeude hinter den Figuren steht statt das Grundstueck von oben zu zeigen, und weit
+    genug weg, dass Strassen, Trainingsplatz und Parkplatz das Bild rahmen.
   - Jedes Gebaeude wird aus einem **eigenen** Zufallsstartwert bestueckt (`BUILDING_SEEDS`), damit sein
     Aussehen nicht davon abhaengt, welche anderen Gebaeude das Team besitzt - und damit der Nachbau
     fuer die Vorschau genauso aussieht wie das Original.

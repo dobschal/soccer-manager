@@ -660,6 +660,24 @@ export const BUILDING_VIEWS = Object.freeze({
   medical_practice: {x: 0, y: 3.4, z: PRACTICE_FRONT + 4, radius: 12, elevation: 20}
 })
 
+/**
+ * How each building is framed when it is used as a *backdrop* rather than as a
+ * portrait: the youth-team page stands its squad photo in front of the academy
+ * (#563), and for that the camera drops far closer to the ground than a
+ * portrait needs, so the building stands behind the players instead of the plot
+ * being looked down on.
+ *
+ * Same shape as `BUILDING_VIEWS`, and only defined for the buildings that are
+ * actually used this way.
+ * @type {Readonly<Object<string, {x: number, y: number, z: number, radius: number, elevation: number}>>}
+ */
+export const BUILDING_BACKDROP_VIEWS = Object.freeze({
+  // Wide and high enough that both roads, the crossing, the training pitch and
+  // the car park frame the building, while it still stands squarely behind the
+  // squad rather than being looked down on like the portrait view does.
+  youth_academy: {x: -ACADEMY_BUILDING_X, y: 4, z: 0, radius: 22, elevation: 22}
+})
+
 // How much air the portrait keeps around its framed sphere.
 const VIEW_MARGIN = 1.08
 
@@ -728,12 +746,14 @@ export function clubBuildingPlot (type, level, intersection, clearance) {
  * sphere fits in the narrower of the two field-of-view angles. Pure geometry, so
  * the framing can be checked without a scene.
  * @param {{type: string, cx: number, cz: number, halfX: number, halfZ: number, qx: number, qz: number}} plot
- * @param {{aspect?: number, fov?: number}} [options] `fov` is the camera's
- *   vertical field of view in degrees, `aspect` the still's width / height.
+ * @param {{aspect?: number, fov?: number, view?: {x: number, y: number, z: number, radius: number, elevation: number}}} [options]
+ *   `fov` is the camera's vertical field of view in degrees, `aspect` the
+ *   still's width / height, `view` a framing to use instead of the building's
+ *   own portrait one (see `BUILDING_BACKDROP_VIEWS`).
  * @returns {{position: {x: number, y: number, z: number}, target: {x: number, y: number, z: number}, fov: number}}
  */
-export function buildingSnapshotView (plot, {aspect = 1.6, fov = 45} = {}) {
-  const view = BUILDING_VIEWS[plot.type] ||
+export function buildingSnapshotView (plot, {aspect = 1.6, fov = 45, view: framing} = {}) {
+  const view = framing || BUILDING_VIEWS[plot.type] ||
     {x: 0, y: 4, z: 0, radius: Math.max(plot.halfX, plot.halfZ), elevation: 26}
   const target = {x: plot.cx + view.x, y: view.y, z: plot.cz + view.z}
 

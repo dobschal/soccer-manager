@@ -58,7 +58,7 @@ Beim Aufdecken einer NEW_YOUTH_PLAYER_X-Karte ruft das Frontend `getYouthPlayerO
 - **TA-YA-06**: `_giveUsersActionCards()` überschreibt die Karten-Chancen für NEW_YOUTH_PLAYER_X mit Akademie-Level-Overrides.
 - **TA-YA-07**: Garantierte Karte: Wenn ein Team weder einen Jugendspieler besitzt noch in dieser Saison eine Jugendspieler-Karte erhalten hat, wird eine Pending-Karte vergeben. Die Stufe kommt aus `YOUTH_ACADEMY_GUARANTEED_CARD[akademieLevel]` (1 → Bronze, 2 → Silber, 3 → Gold) und muss zur von `YOUTH_ACADEMY_CARD_CHANCES` ausgegebenen Stufe passen.
 - **TA-YA-14**: Deckel: `MAX_YOUTH_CARDS_PER_SEASON = 3` Jugendkarten pro Team und Saison. Die Garantiekarte zaehlt mit. Ist der Deckel erreicht, werden fuer den Rest der Saison keine weiteren Jugendkarten mehr vergeben.
-- **TA-YA-15**: Trainingsmodus-Slots skalieren mit dem Akademie-Level: `rest` immer 4, `training` und `friendly_match` je `max(2, min(4, level + 1))` (siehe [Youth Players](youth-players.md)).
+- **TA-YA-15**: Trainingsmodus-Slots skalieren mit dem Akademie-Level: `rest` unbegrenzt, `training` und `friendly_match` je `max(2, min(4, level + 1))` (siehe [Youth Players](youth-players.md)).
 - **TA-YA-08**: `YOUTH_PLAYER_CARD_RANGES` definiert Level- und Talent-Ranges pro Karte; `generateYouthPlayerOptions(action)` liefert 3 Optionen innerhalb dieser Ranges.
 - **TA-YA-09**: Beim Einsetzen einer NEW_YOUTH_PLAYER_X-Karte validiert der Server die übergebene Option (Name nicht leer, Position aus `Position`-Enum, Level/Talent in Range, hair/skin_color in gültigem Bereich) und erstellt den Jugendspieler mit den validierten Werten.
 

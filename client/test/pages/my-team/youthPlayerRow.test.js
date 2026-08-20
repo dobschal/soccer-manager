@@ -69,11 +69,25 @@ describe('YouthPlayerRow', () => {
       expect(html).not.toMatch(/<option value="rest"[^>]*selected/)
     })
 
-    it('renders the unassigned option as selected when training_mode is falsy', () => {
+    it('preselects rest and offers no unassigned option when training_mode is falsy', () => {
       const player = { id: 1, name: 'A', position: 'CM', age: 17, level: 15, moral: 0.5, fitness: 0.5, training_mode: null }
       const row = new YouthPlayerRow(player, makePage())
       const html = row.template
-      expect(html).toMatch(/<option value=""[^>]*selected/)
+      expect(html).toMatch(/<option value="rest"[^>]*selected/)
+      expect(html).not.toContain('<option value=""')
+      expect(html).not.toContain('youthTeam.unassigned')
+    })
+
+    it('keeps showing rest when the server event clears the mode', () => {
+      const player = { id: 5, name: 'A', position: 'CM', age: 17, level: 15, moral: 0.5, fitness: 0.5, training_mode: 'rest' }
+      const row = new YouthPlayerRow(player, makePage())
+      row.update = vi.fn()
+
+      const handler = row.serverEvents[SERVER_EVENTS.YOUTH_PLAYER_TRAINING_MODE_CHANGED.name]
+      handler({ youthPlayerId: 5, previousMode: 'rest', newMode: null })
+
+      // rest and "no own mode" are the same thing on screen — nothing to redraw.
+      expect(row.update).not.toHaveBeenCalled()
     })
 
     it('disables the promote button when the player is under 16', () => {

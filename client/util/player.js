@@ -81,6 +81,24 @@ export const salaryPerLevel = new Proxy([], {
 })
 
 /**
+ * A player's name for tight spots: surname plus the first initial, e.g.
+ * "Luciano Mendes" → "L. Mendes". The last word counts as the surname and the
+ * first as the given name, so a middle name simply drops out.
+ *
+ * The initial is taken with `Array.from` rather than `[0]` — a name may start
+ * with a character outside the BMP, and half a surrogate pair is not a letter
+ * (see requirements/user-input.md).
+ * @param {string} name
+ * @returns {string}
+ */
+export function shortenPlayerName (name) {
+  const words = String(name ?? '').trim().split(/\s+/).filter(Boolean)
+  if (words.length < 2) return words[0] ?? ''
+  const initial = Array.from(words[0])[0]
+  return `${initial}. ${words[words.length - 1]}`
+}
+
+/**
  * @param {PlayerType} player
  * @param {number} currentSeason
  * @returns {number}

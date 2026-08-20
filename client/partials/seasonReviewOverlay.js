@@ -69,7 +69,14 @@ export function isSeasonReviewDismissed (season) {
   }
 }
 
-function markDismissed (season) {
+/**
+ * Remember that the review for this season needs no overlay any more. Exported
+ * so a brand-new manager can skip the review of a season their team played
+ * under bot control (#564).
+ * @param {number} season
+ * @returns {void}
+ */
+export function markSeasonReviewDismissed (season) {
   try {
     window.sessionStorage.setItem(STORAGE_KEY_PREFIX + season, '1')
   } catch { /* sessionStorage unavailable — overlay will just reappear */ }
@@ -225,7 +232,7 @@ export function showSeasonReviewOverlay (review) {
     const dismiss = () => {
       if (dismissed) return
       dismissed = true
-      markDismissed(review.season)
+      markSeasonReviewDismissed(review.season)
       document.removeEventListener('keydown', onKeyDown)
       const overlay = el('#' + overlayId)
       if (!overlay) { resolve(); return }

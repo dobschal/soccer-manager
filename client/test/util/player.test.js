@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { hasRetired, sortByPosition, willRetireNextSeason } from '../../util/player.js'
+import { hasRetired, shortenPlayerName, sortByPosition, willRetireNextSeason } from '../../util/player.js'
 
 const p = (overrides = {}) => ({
   position: 'CM',
@@ -96,5 +96,33 @@ describe('hasRetired', () => {
 
   it('treats a player row without the column as active', () => {
     expect(hasRetired({ carrier_end_season: 9 })).toBe(false)
+  })
+})
+
+describe('shortenPlayerName (#563)', () => {
+  it('keeps the surname and abbreviates the given name', () => {
+    expect(shortenPlayerName('Luciano Mendes')).toBe('L. Mendes')
+  })
+
+  it('drops a middle name', () => {
+    expect(shortenPlayerName('Jose Maria Avila')).toBe('J. Avila')
+  })
+
+  it('leaves a single-word name alone', () => {
+    expect(shortenPlayerName('Ronaldinho')).toBe('Ronaldinho')
+  })
+
+  it('copes with extra whitespace', () => {
+    expect(shortenPlayerName('  Tim   Wagner  ')).toBe('T. Wagner')
+  })
+
+  it('takes a whole character as the initial, not half a surrogate pair', () => {
+    expect(shortenPlayerName('🅰️lex Keller')).toBe('🅰. Keller')
+  })
+
+  it('returns an empty string for nothing', () => {
+    expect(shortenPlayerName('')).toBe('')
+    expect(shortenPlayerName(null)).toBe('')
+    expect(shortenPlayerName(undefined)).toBe('')
   })
 })

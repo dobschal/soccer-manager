@@ -9,6 +9,7 @@ import {t} from '../../i18n/index.js'
 import {wikiInfoIcon} from '../../partials/wikiInfoIcon.js'
 import {euroFormat} from '../../lib/currency.js'
 import {StadiumCanvas} from '../../partials/stadiumCanvas.js'
+import {cachedBuildingStill, rememberBuildingStill} from '../../lib/buildingStill.js'
 
 /**
  * The painted level images. They are only the fallback now — every card image is
@@ -155,6 +156,10 @@ export class BuildingsPage extends UIElement {
         const still = canvas.captureBuilding(building.type, {level})
         if (!still) continue
         this._stills[`${building.type}:${level}`] = still
+        // Other pages show these buildings too and cannot afford a WebGL scene
+        // of their own — the youth-team page uses the academy's still as the
+        // backdrop of its squad photo (#563).
+        rememberBuildingStill(building.type, level, still)
         if (level === current) this._showStill(building.type, still)
         await new Promise(resolve => requestAnimationFrame(resolve))
       }
@@ -182,7 +187,9 @@ export class BuildingsPage extends UIElement {
    */
   _buildingImage (type, level) {
     const clamped = Math.max(1, Math.min(level, 3))
-    return this._stills[`${type}:${clamped}`] || FALLBACK_IMAGES[type]?.[clamped]
+    return this._stills[`${type}:${clamped}`] ||
+      cachedBuildingStill(type, clamped) ||
+      FALLBACK_IMAGES[type]?.[clamped]
   }
 
   /**

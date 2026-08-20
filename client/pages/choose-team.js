@@ -6,6 +6,7 @@ import { renderEmblem } from '../partials/emblem.js'
 import { openEmblemEditor } from '../partials/emblemEditor.js'
 import { formatLeague } from '../util/league.js'
 import { goTo, setHasTeam } from '../lib/router.js'
+import { markFreshRegistration } from '../lib/freshRegistration.js'
 import { el, generateId, value } from '../lib/html.js'
 import { getPromoVideoId, renderPromoVideoEmbed } from '../lib/promoVideo.js'
 import { shortenTeamName } from '../util/team.js'
@@ -169,7 +170,9 @@ export class ChooseTeamPage extends UIElement {
       this._team.name = name
       this._team.short_name = shortName || null
       // Name + emblem are done on one page — saving the name finishes the flow
-      // and heads straight to the dashboard (#453).
+      // and heads straight to the dashboard (#453). Flag the handoff so the
+      // dashboard greets a brand-new manager with the tutorial only (#564).
+      markFreshRegistration()
       goTo('')
     } catch (e) {
       toast(e?.message ?? t('landing.somethingWentWrong'), 'error')
