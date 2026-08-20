@@ -663,16 +663,18 @@ export const BUILDING_VIEWS = Object.freeze({
 /**
  * How each building is framed when it is used as a *backdrop* rather than as a
  * portrait: the youth-team page stands its squad photo in front of the academy
- * (#563), and for that the camera has to drop to near eye level and move in
- * close, so the facade fills the frame behind the players instead of showing the
- * plot from above.
+ * (#563), and for that the camera drops far closer to the ground than a
+ * portrait needs, so the building stands behind the players instead of the plot
+ * being looked down on.
  *
  * Same shape as `BUILDING_VIEWS`, and only defined for the buildings that are
  * actually used this way.
  * @type {Readonly<Object<string, {x: number, y: number, z: number, radius: number, elevation: number}>>}
  */
 export const BUILDING_BACKDROP_VIEWS = Object.freeze({
-  youth_academy: {x: -ACADEMY_BUILDING_X, y: 4, z: 0, radius: 16, elevation: 7}
+  // Wide enough that both roads, the training pitch and the car park frame the
+  // building, and flat enough that it still stands *behind* the squad.
+  youth_academy: {x: -ACADEMY_BUILDING_X, y: 4, z: 0, radius: 22, elevation: 14}
 })
 
 // How much air the portrait keeps around its framed sphere.

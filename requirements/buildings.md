@@ -181,8 +181,9 @@ der Gebaeude liegt in `client/partials/clubBuildingsScene.js`.
     Jugendmannschaft nutzt das Standbild der Jugendakademie als Hintergrund ihres Mannschaftsfotos
     (#563). Wer ein Standbild rendert, legt es dort ab.
   - `captureBuilding` nimmt optional einen abweichenden Bildausschnitt (`view`). Fuer die Verwendung als
-    Hintergrund gibt es `BUILDING_BACKDROP_VIEWS`: naeher dran und fast auf Augenhoehe, damit die
-    Fassade hinter den Figuren steht statt das Grundstueck von oben zu zeigen.
+    Hintergrund gibt es `BUILDING_BACKDROP_VIEWS`: deutlich flacherer Hoehenwinkel als beim Portraet,
+    damit das Gebaeude hinter den Figuren steht statt das Grundstueck von oben zu zeigen, und weit
+    genug weg, dass Strassen, Trainingsplatz und Parkplatz das Bild rahmen.
   - Jedes Gebaeude wird aus einem **eigenen** Zufallsstartwert bestueckt (`BUILDING_SEEDS`), damit sein
     Aussehen nicht davon abhaengt, welche anderen Gebaeude das Team besitzt - und damit der Nachbau
     fuer die Vorschau genauso aussieht wie das Original.
