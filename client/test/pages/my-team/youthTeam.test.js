@@ -570,7 +570,7 @@ describe('YouthTeamPage', () => {
       await page._captureAcademyBackdrop()
 
       expect(canvas.captureBuilding).toHaveBeenCalledWith('youth_academy', expect.objectContaining({
-        level: 2, width: 960, height: 400
+        level: 2, width: 1920, height: 800
       }))
       // The backdrop framing, not the buildings page's aerial portrait.
       const [, options] = canvas.captureBuilding.mock.calls[0]

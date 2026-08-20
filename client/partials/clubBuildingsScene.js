@@ -672,9 +672,10 @@ export const BUILDING_VIEWS = Object.freeze({
  * @type {Readonly<Object<string, {x: number, y: number, z: number, radius: number, elevation: number}>>}
  */
 export const BUILDING_BACKDROP_VIEWS = Object.freeze({
-  // Wide enough that both roads, the training pitch and the car park frame the
-  // building, and flat enough that it still stands *behind* the squad.
-  youth_academy: {x: -ACADEMY_BUILDING_X, y: 4, z: 0, radius: 22, elevation: 14}
+  // Wide and high enough that both roads, the crossing, the training pitch and
+  // the car park frame the building, while it still stands squarely behind the
+  // squad rather than being looked down on like the portrait view does.
+  youth_academy: {x: -ACADEMY_BUILDING_X, y: 4, z: 0, radius: 22, elevation: 22}
 })
 
 // How much air the portrait keeps around its framed sphere.

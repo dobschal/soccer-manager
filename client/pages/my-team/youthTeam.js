@@ -385,8 +385,12 @@ export class YouthTeamPage extends UIElement {
   /** Portrait width in px. The SVG is sized in JS, so this cannot be CSS. */
   static SQUAD_PHOTO_PORTRAIT_SIZE = 84
 
-  /** Size of the academy still used as the photo's backdrop. */
-  static ACADEMY_STILL = Object.freeze({width: 960, height: 400})
+  /**
+   * Size of the academy still used as the photo's backdrop. Rendered at roughly
+   * twice the frame's CSS width so it stays sharp on a 2x display — the photo is
+   * as wide as the page, and a 960px still was visibly soft there.
+   */
+  static ACADEMY_STILL = Object.freeze({width: 1920, height: 800})
 
   /**
    * The youth squad as a team photo in front of the academy: two staggered rows

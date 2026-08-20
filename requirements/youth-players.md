@@ -176,7 +176,8 @@ randomFactor = 0.9 bis 1.1
 - **TA-YTH-34**: Passt der Kader nicht in die Breite, scrollt das Foto **horizontal** (beide Reihen
   gemeinsam in `.youth-squad-scroller`) - es wird nie eine dritte Reihe umgebrochen.
 - **TA-YTH-35**: Der Hintergrund ist das 3D-Standbild der eigenen Jugendakademie
-  (`captureBuilding('youth_academy', {view: BUILDING_BACKDROP_VIEWS.youth_academy})`, 960x400).
+  (`captureBuilding('youth_academy', {view: BUILDING_BACKDROP_VIEWS.youth_academy})`, 1920x800 -
+  etwa doppelte Rahmenbreite, damit es auf 2x-Displays nicht weich wirkt).
   Es kommt aus dem gemeinsamen Cache (`client/lib/buildingStill.js`); nur wenn dort noch keins liegt,
   stellt die Seite einmalig ein unsichtbares `StadiumCanvas` auf, fotografiert und gibt den
   WebGL-Kontext sofort wieder frei.
