@@ -51,6 +51,40 @@ export const CONFIG = Object.freeze({
     // to clear this much or it ends up inside the wall.
     backWallThickness: 0.5
   },
+  // Relief on the outward face of every back wall. A stadium's back is not a
+  // blank slab: concrete pilasters at a regular pitch, a gallery band at every
+  // concourse floor, recessed window fields between them, tall portals framing
+  // the entrances and stair towers at the ends. Neutral concrete throughout —
+  // the club's colour belongs on the emblem signs, not on the building.
+  facade: {
+    // Light concrete throughout. The ambient light is a dim blue (0x404060), so
+    // a wall turned away from the sun is lit by almost nothing and relief read
+    // from shading alone disappears — what carries the modelling there is the
+    // *albedo* contrast between pale concrete and dark glazing, which no
+    // lighting can flatten. Hence near-white walls rather than mid-grey.
+    wallColor: 0xb4b4b4,
+    pilaster: {spacing: 5, width: 0.7, depth: 0.35, color: 0xc6c6c6},
+    band: {height: 0.55, depth: 0.5, color: 0xd4d4d4}, // gallery slab edges
+    groundHeight: 5.5, // the tall ground floor carrying the portals
+    levelHeight: 4.5, // every concourse level above it
+    window: {
+      inset: 0.5, // margin inside a bay, left/right and top/bottom
+      depth: 0.08, // sits just proud of the wall, so it reads as a recess
+      dayColor: 0x3b4147,
+      nightColor: 0xffe3ad,
+      litFraction: 0.55 // share of the fields showing a light after dark
+    },
+    portal: {
+      extraWidth: 2, // wider than the entrance tunnel it frames
+      jamb: 0.5, // width of the frame's uprights
+      depth: 0.45,
+      color: 0xd4d4d4
+    },
+    // Towers are cast in the pilaster's concrete, the parapet in the bands'.
+    tower: {width: 3.2, depth: 1.1, overshoot: 1.2},
+    parapet: {height: 0.8, depth: 0.7},
+    minHeight: 4 // a wall lower than this carries none of it
+  },
   // Players' tunnel cut into the front-centre of the north stand.
   tunnel: {
     width: 3, // clear width of the passage
@@ -125,6 +159,10 @@ export const CONFIG = Object.freeze({
   // be twenty extra lights for one sign.
   emblemSign: {
     maxSize: 2.4,
+    // How far the sign stands off the back wall's outer face. It has to clear
+    // the deepest piece of facade relief (the gallery bands), or a stand tall
+    // enough for a band at sign height swallows the emblem.
+    standoff: 0.62,
     minSize: 1, // below this the stand's back is too low to carry one
     gapAboveEntrance: 0.35,
     gapBelowTop: 0.35,
@@ -536,6 +574,10 @@ export class StadiumCanvas extends UIElement {
     this._camera = null
     this._updaters = []
     this._buildingGroups = {}
+    // Disposed along with the scene above — keeping the caches would hand a
+    // rebuild geometry and materials whose GPU side is already gone.
+    this._unitBoxGeo = null
+    this._facadeMats = null
     this._animationTime = 0
     this._threeJSInitialized = false
     // Nothing to wait for any more — a page still holding the promise gets its
@@ -1960,8 +2002,9 @@ export class StadiumCanvas extends UIElement {
     const centerY = bottom + size / 2
     // The entrance sits at the *inner* face of the stand's back wall, which grows
     // outward from there — so everything here has to start beyond it, or it ends
-    // up buried in the wall.
-    const wall = CONFIG.stand.backWallThickness
+    // up buried in the wall. Beyond the wall comes the facade relief, hence the
+    // extra standoff: without it a gallery band at sign height hides the emblem.
+    const wall = CONFIG.stand.backWallThickness + S.standoff
     const plate = new this._THREE.Mesh(
       new this._THREE.PlaneGeometry(size, size),
       // Transparent: only the emblem's own shape should show, no plate behind it.
@@ -2694,11 +2737,294 @@ export class StadiumCanvas extends UIElement {
   }
 
   /**
+   * A unit box, shared by every instanced facade part — each instance carries its
+   * own scale, so one geometry covers pilasters, bands, portals and panes alike.
+   * @returns {Object} a 1×1×1 BoxGeometry
+   */
+  _unitBox () {
+    if (!this._unitBoxGeo) this._unitBoxGeo = new this._THREE.BoxGeometry(1, 1, 1)
+    return this._unitBoxGeo
+  }
+
+  /**
+   * The facade's materials, built once and shared by all eight walls. Neutral
+   * concrete tones only — no club colour on the building itself.
+   * @returns {Object<string, Object>} keyed by the `mat` of a facade part
+   */
+  _facadeMaterials () {
+    if (this._facadeMats) return this._facadeMats
+    const F = CONFIG.facade
+    const lambert = color => new this._THREE.MeshLambertMaterial({color})
+    this._facadeMats = {
+      pilaster: lambert(F.pilaster.color),
+      band: lambert(F.band.color),
+      portal: lambert(F.portal.color),
+      pane: lambert(F.window.dayColor),
+      // Self-lit, like the emblem signs: a window showing a light needs no lamp
+      // of its own, and a few hundred real ones would sink the frame rate.
+      paneLit: new this._THREE.MeshBasicMaterial({color: F.window.nightColor})
+    }
+    return this._facadeMats
+  }
+
+  /**
+   * Whether a given window field shows a light after dark. A hash, not
+   * `Math.random()`: the stadium is rebuilt on every stand change, and the lit
+   * windows must not reshuffle each time.
+   * @param {number} floor
+   * @param {number} bay
+   * @returns {boolean}
+   */
+  _facadeLit (floor, bay) {
+    const n = Math.sin(floor * 12.9898 + bay * 78.233) * 43758.5453
+    return (n - Math.floor(n)) < CONFIG.facade.window.litFraction
+  }
+
+  /**
+   * Turn the collected facade parts into one `InstancedMesh` per material, so a
+   * wall costs a handful of draw calls however many pilasters it carries.
+   * @param {THREE.Group} group
+   * @param {Array<{mat:string,x:number,y:number,w:number,h:number,d:number}>} boxes
+   * @param {number} z outer face of the wall — every part grows outward from it
+   * @param {Object<string, Object>} materials
+   */
+  _addFacadeBoxes (group, boxes, z, materials) {
+    const byMaterial = new Map()
+    for (const box of boxes) {
+      if (!byMaterial.has(box.mat)) byMaterial.set(box.mat, [])
+      byMaterial.get(box.mat).push(box)
+    }
+
+    const matrix = new this._THREE.Matrix4()
+    const quat = new this._THREE.Quaternion()
+    const scale = new this._THREE.Vector3()
+    const pos = new this._THREE.Vector3()
+
+    for (const [key, list] of byMaterial) {
+      const mesh = new this._THREE.InstancedMesh(this._unitBox(), materials[key], list.length)
+      mesh.castShadow = true
+      mesh.receiveShadow = true
+      list.forEach((box, i) => {
+        scale.set(box.w, box.h, box.d)
+        pos.set(box.x, box.y, z + box.d / 2)
+        matrix.compose(pos, quat, scale)
+        mesh.setMatrixAt(i, matrix)
+      })
+      mesh.instanceMatrix.needsUpdate = true
+      group.add(mesh)
+    }
+  }
+
+  /**
+   * The window fields: one instanced mesh of dark panes standing just proud of
+   * the wall (so the relief around them reads as a recess), and a second one of
+   * lit panes a hair further out, marked `nightOnly` so the facade only lights
+   * up after dark.
+   * @param {THREE.Group} group
+   * @param {Array<{x:number,y:number,z:number,w:number,h:number,lit:boolean}>} panes
+   * @param {Object<string, Object>} materials
+   */
+  _addFacadePanes (group, panes, materials) {
+    const depth = CONFIG.facade.window.depth
+    const matrix = new this._THREE.Matrix4()
+    const quat = new this._THREE.Quaternion()
+    const scale = new this._THREE.Vector3()
+    const pos = new this._THREE.Vector3()
+
+    const build = (list, material, zOffset, nightOnly) => {
+      if (list.length === 0) return
+      const mesh = new this._THREE.InstancedMesh(this._unitBox(), material, list.length)
+      // Panes lie flat against the wall; casting shadows off them buys nothing.
+      mesh.receiveShadow = !nightOnly
+      list.forEach((pane, i) => {
+        scale.set(pane.w, pane.h, depth)
+        pos.set(pane.x, pane.y, pane.z + depth / 2 + zOffset)
+        matrix.compose(pos, quat, scale)
+        mesh.setMatrixAt(i, matrix)
+      })
+      mesh.instanceMatrix.needsUpdate = true
+      if (nightOnly) mesh.userData.nightOnly = true
+      group.add(mesh)
+    }
+
+    build(panes, materials.pane, 0, false)
+    build(panes.filter(p => p.lit), materials.paneLit, 0.03, true)
+  }
+
+  /**
+   * Relief on the outward face of a back wall: pilasters at a regular pitch, a
+   * gallery band at every concourse floor, recessed window fields between them,
+   * tall portals around the entrances and stair towers at the ends. Without it
+   * a stand's back is one flat slab, which is what nothing in the real world
+   * looks like.
+   *
+   * Everything grows *outward* from `z`, the wall's outer face, so the entrances
+   * and their emblem signs keep their place — the signs clear the deepest part
+   * of this relief via `CONFIG.emblemSign.standoff`.
+   *
+   * @param {THREE.Group} group the stand's group
+   * @param {Object} options
+   * @param {number} options.width width of the back wall
+   * @param {number} options.height height of the back wall
+   * @param {number} options.z local z of the wall's outer face
+   * @param {number} [options.entranceCount] portals to frame (0 = none)
+   * @param {number} [options.entranceSpan] the width the entrances spread over
+   * @param {boolean} [options.towers] stair towers at the wall's ends
+   * @param {boolean} [options.underConstruction] a shell has no glazing yet
+   * @returns {?{bays:number, floors:number}} null if the wall is too low for any
+   */
+  _addFacade (group, options) {
+    const F = CONFIG.facade
+    const {width, height, z} = options
+    const entranceCount = options.entranceCount ?? 0
+    const entranceSpan = options.entranceSpan ?? width
+    const withTowers = options.towers !== false
+    if (!(width > 0) || !(height >= F.minHeight)) return null
+
+    // Bays: the pilaster pitch, rounded so the end bay is never a sliver.
+    const bays = Math.max(2, Math.round(width / F.pilaster.spacing))
+    const bayWidth = width / bays
+
+    // Floors: one tall ground floor carrying the portals, then concourse levels
+    // until the parapet takes over. A part-floor shorter than 60% is dropped
+    // rather than squeezed in.
+    const capY = Math.max(0, height - F.parapet.height)
+    const floors = []
+    let y = 0
+    for (;;) {
+      const floorHeight = floors.length === 0 ? F.groundHeight : F.levelHeight
+      if (capY - y < floorHeight * 0.6) break
+      const top = Math.min(y + floorHeight, capY)
+      floors.push({bottom: y, top})
+      y = top
+    }
+    if (floors.length === 0 && capY > 1.5) floors.push({bottom: 0, top: capY})
+
+    // Portals sit where `_buildEntrances` puts the entrances, so every frame
+    // lands on a real one.
+    const portalWidth = CONFIG.entrance.width + F.portal.extraWidth
+    const portalHeight = floors.length
+      ? Math.min(floors[0].top - 0.3, CONFIG.entrance.height + 1.7)
+      : 0
+    const portalXs = []
+    for (let i = 0; i < entranceCount && portalHeight > CONFIG.entrance.height; i++) {
+      portalXs.push(-entranceSpan / 2 + (i + 1) / (entranceCount + 1) * entranceSpan)
+    }
+
+    const boxes = []
+
+    // --- pilasters: one on every bay edge, running the full height ---
+    for (let i = 0; i <= bays; i++) {
+      boxes.push({
+        mat: 'pilaster',
+        x: -width / 2 + i * bayWidth,
+        y: height / 2,
+        w: F.pilaster.width,
+        h: height,
+        d: F.pilaster.depth
+      })
+    }
+
+    // --- gallery bands at each floor's slab edge; the topmost is the parapet ---
+    for (const floor of floors) {
+      if (floor.top >= capY - 0.01) continue
+      boxes.push({mat: 'band', x: 0, y: floor.top, w: width, h: F.band.height, d: F.band.depth})
+    }
+
+    boxes.push({
+      mat: 'band',
+      x: 0,
+      y: height - F.parapet.height / 2,
+      w: width + 0.4,
+      h: F.parapet.height,
+      d: F.parapet.depth
+    })
+
+    // --- stair towers at both ends, standing a little proud of the roofline ---
+    const towerX = width / 2 - F.tower.width / 2
+    const hasTowers = withTowers && width > F.tower.width * 3
+    if (hasTowers) {
+      for (const side of [-1, 1]) {
+        boxes.push({
+          mat: 'pilaster',
+          x: side * towerX,
+          y: (height + F.tower.overshoot) / 2,
+          w: F.tower.width,
+          h: height + F.tower.overshoot,
+          d: F.tower.depth
+        })
+      }
+    }
+
+    // --- portal frames: two jambs and a lintel around every entrance ---
+    for (const portalX of portalXs) {
+      for (const side of [-1, 1]) {
+        boxes.push({
+          mat: 'portal',
+          x: portalX + side * (portalWidth + F.portal.jamb) / 2,
+          y: portalHeight / 2,
+          w: F.portal.jamb,
+          h: portalHeight,
+          d: F.portal.depth
+        })
+      }
+      boxes.push({
+        mat: 'portal',
+        x: portalX,
+        y: portalHeight + F.portal.jamb / 2,
+        w: portalWidth + 2 * F.portal.jamb,
+        h: F.portal.jamb,
+        d: F.portal.depth
+      })
+    }
+
+    // --- window fields: one per bay and floor, minus the bays a portal takes ---
+    const panes = []
+    if (!options.underConstruction) {
+      const W = F.window
+      const paneWidth = bayWidth - F.pilaster.width - 2 * W.inset
+      const blockedWidth = (portalWidth + 2 * F.portal.jamb + paneWidth) / 2
+      floors.forEach((floor, f) => {
+        const bottom = floor.bottom + W.inset
+        const top = floor.top - F.band.height / 2 - W.inset
+        if (top - bottom <= 0 || paneWidth <= 0) return
+        for (let b = 0; b < bays; b++) {
+          const x = -width / 2 + (b + 0.5) * bayWidth
+          // The ground floor gives way to the portals…
+          if (f === 0 && portalXs.some(px => Math.abs(px - x) < blockedWidth)) continue
+          // …and no floor glazes the strip a stair tower already covers.
+          if (hasTowers && Math.abs(Math.abs(x) - towerX) < (F.tower.width + paneWidth) / 2) continue
+          panes.push({x, y: (bottom + top) / 2, z, w: paneWidth, h: top - bottom, lit: this._facadeLit(f, b)})
+        }
+      })
+
+      // Stair towers carry one tall glazing strip each, lit right up the shaft.
+      if (hasTowers) {
+        for (const side of [-1, 1]) {
+          panes.push({
+            x: side * towerX,
+            y: height / 2,
+            z: z + F.tower.depth,
+            w: F.tower.width * 0.4,
+            h: height * 0.72,
+            lit: true
+          })
+        }
+      }
+    }
+
+    const materials = this._facadeMaterials()
+    this._addFacadeBoxes(group, boxes, z, materials)
+    this._addFacadePanes(group, panes, materials)
+    return {bays, floors: floors.length}
+  }
+
+  /**
    * @param {THREE.Scene} scene
    * @param {Object} config
    */
   _createStand (scene, config) {
-    const {width, depthWidth, seats, x, z, rotation, hasRoof, hasTunnel, underConstruction} = config
+    const {position, width, depthWidth, seats, x, z, rotation, hasRoof, hasTunnel, underConstruction} = config
     const {lowerRowHeight, upperRowHeight, overhangClearance, overhangCoverFraction} = CONFIG.stand
 
     const group = new this._THREE.Group()
@@ -2832,7 +3158,7 @@ export class StadiumCanvas extends UIElement {
       group.add(instancedSeats)
     }
 
-    const backWallMat = new this._THREE.MeshLambertMaterial({color: 0x606060})
+    const backWallMat = new this._THREE.MeshLambertMaterial({color: CONFIG.facade.wallColor})
 
     // --- overhang: rear wall of the lower tier + cantilevered deck ---
     if (twoTier) {
@@ -2867,6 +3193,19 @@ export class StadiumCanvas extends UIElement {
     backWall.position.z = totalDepth + wallThickness / 2
     backWall.castShadow = true
     group.add(backWall)
+
+    // The facade sits on that wall's outer face. The portals have to line up
+    // with the entrances, which `_buildEntrances` spreads over `width` (not the
+    // wall's `width + 2`) — hence the two different spans.
+    const isEndStand = position === 'north' || position === 'south'
+    this._addFacade(group, {
+      width: width + 2,
+      height: backWallHeight,
+      z: totalDepth + wallThickness,
+      entranceCount: isEndStand ? CONFIG.entrance.endStandCount : CONFIG.entrance.sideStandCount,
+      entranceSpan: width,
+      underConstruction
+    })
 
     // --- side walls (one pair per tier, so the overhang void stays open) ---
     this._addSideWalls(group, backWallMat, {
@@ -3141,11 +3480,22 @@ export class StadiumCanvas extends UIElement {
     const backHeight = overallTop + 0.5
     const backWall = new this._THREE.Mesh(
       new this._THREE.BoxGeometry(backWidth, backHeight, 0.5),
-      new this._THREE.MeshLambertMaterial({color: 0x606060})
+      new this._THREE.MeshLambertMaterial({color: CONFIG.facade.wallColor})
     )
     backWall.position.set(0, backHeight / 2, totalDepth + 0.25)
     backWall.castShadow = true
     group.add(backWall)
+
+    // Same relief as the main stands, minus the portals (a corner has no
+    // entrance) and minus the stair towers, which would run into the
+    // neighbouring stands' towers at the 45° seam.
+    this._addFacade(group, {
+      width: backWidth,
+      height: backHeight,
+      z: totalDepth + 0.5,
+      towers: false,
+      underConstruction
+    })
 
     if (roof) {
       // A triangular roof over the fan, held by a mast at the back with a cable

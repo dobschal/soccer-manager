@@ -1331,7 +1331,7 @@ Attendance and income:
 Home advantage:
 • A well-filled stadium boosts your team strength by up to +10% (more fans, more boost), while a stadium below 50% capacity gives a penalty of up to −10%. Only the seats that were open count — closing a stand for construction does not push you towards the penalty.
 
-The 3D view at the top shows your ground as you have built it, your club emblem lit above every entrance in the stands' back walls. The slider under it sets the time of day – dawn, day, dusk or night; it starts on whatever matches your own clock. By day the floodlights are off.`
+The 3D view at the top shows your ground as you have built it, your club emblem lit above every entrance in the stands' back walls. The slider under it sets the time of day – dawn, day, dusk or night; it starts on whatever matches your own clock. By day the floodlights are off; after dark the concrete backs light up too, windows scattered over the concourse floors and a lit stair tower at either end of every stand.`
     },
     de: {
       title: 'Stadion',
@@ -1356,7 +1356,7 @@ Zuschauer und Einnahmen:
 Heimvorteil:
 • Ein gut gefülltes Stadion erhöht deine Teamstärke um bis zu +10% (mehr Fans, mehr Bonus), während ein Stadion unter 50% Auslastung einen Malus von bis zu −10% bringt. Gezählt werden nur die geöffneten Plätze — eine Tribüne für den Ausbau zu sperren treibt dich also nicht in den Malus.
 
-Die 3D-Ansicht oben zeigt dein Stadion so, wie du es gebaut hast – über jedem Eingang in den Tribünen-Rückwänden hängt dein beleuchtetes Vereinswappen. Mit dem Regler darunter stellst du die Tageszeit ein – Morgendämmerung, Tag, Abenddämmerung oder Nacht; beim Öffnen passt sie zu deiner eigenen Uhrzeit. Tagsüber ist das Flutlicht aus.`
+Die 3D-Ansicht oben zeigt dein Stadion so, wie du es gebaut hast – über jedem Eingang in den Tribünen-Rückwänden hängt dein beleuchtetes Vereinswappen. Mit dem Regler darunter stellst du die Tageszeit ein – Morgendämmerung, Tag, Abenddämmerung oder Nacht; beim Öffnen passt sie zu deiner eigenen Uhrzeit. Tagsüber ist das Flutlicht aus; nach Einbruch der Dunkelheit leuchten auch die Betonrückseiten auf – einzelne Fenster in den Umgängen und je ein erleuchteter Treppenturm an beiden Enden jeder Tribüne.`
     }
   },
 

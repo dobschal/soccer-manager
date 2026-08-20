@@ -275,6 +275,9 @@ describe('StadiumCanvas construction state', () => {
  * builders against a stub library and count the instanced meshes that come out:
  * every stand always emits one mesh for its steps, plus one per seat colour.
  * A stand under construction must emit the steps only.
+ *
+ * Seats are the only instanced mesh built off a `BufferGeometry` (steps and the
+ * whole facade use boxes), which is what tells them apart in the stub.
  */
 describe('StadiumCanvas stand geometry under construction', () => {
   /**
@@ -333,20 +336,24 @@ describe('StadiumCanvas stand geometry under construction', () => {
 
   /**
    * @param {Object} config extra `_createStand` config
-   * @returns {number} number of InstancedMesh instances created
+   * @returns {number} number of seat meshes created (one per seat colour)
    */
+  const seatMeshCount = (created) => created.filter(
+    o => o.type === 'InstancedMesh' && o.args[0]?.type === 'BufferGeometry'
+  ).length
+
   const buildStand = (config) => {
     const canvas = new StadiumCanvas({}, {})
     canvas._THREE = stubThree()
     canvas._createStand({ add: () => {} }, {
       position: 'south', width: 56, seats: 12000, x: 0, z: 19, rotation: 0, ...config
     })
-    return canvas._THREE.created.filter(o => o.type === 'InstancedMesh').length
+    return seatMeshCount(canvas._THREE.created)
   }
 
   /**
    * @param {Object} config extra `_createCornerStand` config
-   * @returns {number} number of InstancedMesh instances created
+   * @returns {number} number of seat meshes created (one per seat colour)
    */
   const buildCornerStand = (config) => {
     const canvas = new StadiumCanvas({}, {})
@@ -354,21 +361,20 @@ describe('StadiumCanvas stand geometry under construction', () => {
     canvas._createCornerStand({ add: () => {} }, {
       x: 30, z: 20, rotation: 0, rows: 20, roof: false, ...config
     })
-    return canvas._THREE.created.filter(o => o.type === 'InstancedMesh').length
+    return seatMeshCount(canvas._THREE.created)
   }
 
   it('builds seats on a finished stand', () => {
-    // steps + at least one seat-colour mesh
-    expect(buildStand({})).toBeGreaterThan(1)
+    expect(buildStand({})).toBeGreaterThan(0)
   })
 
   it('leaves a stand under construction without any seats', () => {
-    expect(buildStand({ underConstruction: true })).toBe(1) // steps only
+    expect(buildStand({ underConstruction: true })).toBe(0)
   })
 
   it('leaves a corner stand under construction without any seats', () => {
-    expect(buildCornerStand({})).toBeGreaterThan(1)
-    expect(buildCornerStand({ underConstruction: true })).toBe(1)
+    expect(buildCornerStand({})).toBeGreaterThan(0)
+    expect(buildCornerStand({ underConstruction: true })).toBe(0)
   })
 })
 
@@ -837,6 +843,234 @@ describe('daylightPhaseFor', () => {
 })
 
 /**
+ * The relief on a stand's back wall. Without it the stadium's outside is eight
+ * flat slabs; with it there are pilasters, gallery bands, window fields, portals
+ * around the entrances and stair towers at the ends.
+ *
+ * The stub records every instance's scale and position, so the tests can check
+ * that nothing ends up buried in the wall it is supposed to sit on.
+ */
+describe('StadiumCanvas._addFacade', () => {
+  /**
+   * A stand-in for the parts of `three` the facade builder touches. Instanced
+   * meshes record one `{x, y, z, w, h, d}` per instance, taken from the matrix
+   * the builder composes.
+   * @returns {Object}
+   */
+  const stubThree = () => {
+    const pending = {}
+    class Matrix4 {
+      compose (pos, _quat, scale) {
+        Object.assign(pending, { x: pos.x, y: pos.y, z: pos.z, w: scale.x, h: scale.y, d: scale.z })
+      }
+    }
+    class Vector3 {
+      set (x, y, z) { Object.assign(this, { x, y, z }); return this }
+    }
+    class InstancedMesh {
+      constructor (geometry, material, count) {
+        Object.assign(this, { geometry, material, count })
+        this.instances = []
+        this.instanceMatrix = {}
+        this.userData = {}
+      }
+
+      setMatrixAt () { this.instances.push({ ...pending }) }
+    }
+    return {
+      BoxGeometry: class { constructor (x, y, z) { Object.assign(this, { x, y, z }) } },
+      MeshLambertMaterial: class { constructor (c) { Object.assign(this, c) } },
+      MeshBasicMaterial: class { constructor (c) { Object.assign(this, c) } },
+      Quaternion: class {},
+      Matrix4,
+      Vector3,
+      InstancedMesh
+    }
+  }
+
+  const F = CONFIG.facade
+
+  const addFacade = (options = {}) => {
+    const canvas = new StadiumCanvas({}, {})
+    canvas._THREE = stubThree()
+    const added = []
+    const result = canvas._addFacade({ add: o => added.push(o) }, {
+      width: 58, height: 24, z: 40, entranceCount: 3, entranceSpan: 56, ...options
+    })
+    // Keyed by the shared material, not by colour: several parts are cast in
+    // the same concrete tone and would otherwise be indistinguishable here.
+    const materials = canvas._facadeMaterials()
+    const byMaterial = key => added.find(m => m.material === materials[key])
+    return {
+      canvas,
+      added,
+      result,
+      pilasters: byMaterial('pilaster'),
+      bands: byMaterial('band'),
+      portals: byMaterial('portal'),
+      panes: byMaterial('pane'),
+      lit: byMaterial('paneLit')
+    }
+  }
+
+  it('breaks the wall into bays and stacks floors up it', () => {
+    const { result } = addFacade()
+    expect(result.bays).toBe(Math.round(58 / F.pilaster.spacing))
+    // A tall wall carries the ground floor plus several concourse levels.
+    expect(result.floors).toBeGreaterThan(2)
+  })
+
+  it('gives a taller wall more floors and a wider wall more bays', () => {
+    expect(addFacade({ height: 30 }).result.floors)
+      .toBeGreaterThan(addFacade({ height: 14 }).result.floors)
+    expect(addFacade({ width: 90 }).result.bays)
+      .toBeGreaterThan(addFacade({ width: 30 }).result.bays)
+  })
+
+  it('leaves a wall too low for any relief alone', () => {
+    expect(addFacade({ height: F.minHeight - 0.1 })).toMatchObject({ result: null, added: [] })
+  })
+
+  it('grows every part outward from the wall face, never into it', () => {
+    const { added } = addFacade()
+    expect(added.length).toBeGreaterThan(0)
+    for (const mesh of added) {
+      for (const part of mesh.instances) {
+        // z is the instance's centre, so its inner face is z - d/2.
+        expect(part.z - part.d / 2).toBeGreaterThanOrEqual(40 - 1e-9)
+      }
+    }
+  })
+
+  it('stands a pilaster on every bay edge, running the full height', () => {
+    const { result, pilasters } = addFacade({ towers: false })
+    expect(pilasters.instances).toHaveLength(result.bays + 1)
+    for (const p of pilasters.instances) {
+      expect(p.h).toBe(24)
+      expect(p.w).toBe(F.pilaster.width)
+      expect(Math.abs(p.x)).toBeLessThanOrEqual(58 / 2 + 1e-9)
+    }
+    // Evenly spaced, from one end of the wall to the other.
+    const xs = pilasters.instances.map(p => p.x).sort((a, b) => a - b)
+    expect(xs[0]).toBeCloseTo(-29)
+    expect(xs[xs.length - 1]).toBeCloseTo(29)
+  })
+
+  it('caps the wall with a parapet and bands the floors below it', () => {
+    const { result, bands } = addFacade()
+    const parapets = bands.instances.filter(b => b.h === F.parapet.height)
+    expect(parapets).toHaveLength(1)
+    expect(parapets[0].y).toBeCloseTo(24 - F.parapet.height / 2)
+    expect(parapets[0].w).toBeGreaterThan(58) // overhangs the wall a touch
+
+    // One band per floor slab below it — the topmost floor ends at the parapet
+    // and needs none of its own.
+    const slabs = bands.instances.filter(b => b.h === F.band.height)
+    expect(slabs.length).toBeGreaterThanOrEqual(result.floors - 1)
+    expect(slabs.length).toBeLessThanOrEqual(result.floors)
+    for (const slab of slabs) {
+      expect(slab.y).toBeLessThan(24 - F.parapet.height)
+      expect(slab.w).toBe(58)
+    }
+  })
+
+  it('frames every entrance with two jambs and a lintel', () => {
+    const { portals } = addFacade({ entranceCount: 3 })
+    expect(portals.instances).toHaveLength(3 * 3)
+    const lintels = portals.instances.filter(p => p.h === F.portal.jamb)
+    expect(lintels).toHaveLength(3)
+    // Sitting where `_buildEntrances` puts the entrances across the span.
+    expect(lintels.map(l => Math.round(l.x)).sort((a, b) => a - b)).toEqual([-14, 0, 14])
+    for (const lintel of lintels) {
+      expect(lintel.w).toBeGreaterThan(CONFIG.entrance.width)
+      expect(lintel.y).toBeGreaterThan(CONFIG.entrance.height)
+    }
+  })
+
+  it('leaves a corner wall without portals', () => {
+    const { portals } = addFacade({ entranceCount: 0, towers: false })
+    expect(portals).toBeUndefined()
+  })
+
+  it('keeps the ground floor clear where a portal stands', () => {
+    const { panes } = addFacade({ entranceCount: 3 })
+    const ground = panes.instances.filter(p => p.y < F.groundHeight)
+    // No pane overlaps a portal frame.
+    for (const pane of ground) {
+      for (const portalX of [-14, 0, 14]) {
+        const clearance = (CONFIG.entrance.width + F.portal.extraWidth) / 2 + F.portal.jamb
+        expect(Math.abs(pane.x - portalX)).toBeGreaterThan(clearance - pane.w / 2)
+      }
+    }
+  })
+
+  it('glazes the bays and lights some of them after dark', () => {
+    const { panes, lit } = addFacade()
+    expect(panes.instances.length).toBeGreaterThan(6)
+    expect(lit.instances.length).toBeGreaterThan(0)
+    expect(lit.instances.length).toBeLessThan(panes.instances.length)
+    // Only the lit copies switch with the floodlights; the dark panes stay.
+    expect(lit.userData.nightOnly).toBe(true)
+    expect(panes.userData.nightOnly).toBeUndefined()
+    // Every lit pane sits over a dark one, a hair further out.
+    for (const l of lit.instances) {
+      const under = panes.instances.find(p => p.x === l.x && p.y === l.y)
+      expect(under).toBeDefined()
+      expect(l.z).toBeGreaterThan(under.z)
+    }
+  })
+
+  it('lights the same windows every time it is rebuilt', () => {
+    // The stadium is rebuilt on every stand change — a random draw would make
+    // the lit windows jump around between renders.
+    const first = addFacade().lit.instances.map(p => `${p.x},${p.y}`)
+    const second = addFacade().lit.instances.map(p => `${p.x},${p.y}`)
+    expect(first).toEqual(second)
+    expect(first.length).toBeGreaterThan(0)
+  })
+
+  it('leaves a shell under construction unglazed but still moulded', () => {
+    const { panes, lit, pilasters, bands } = addFacade({ underConstruction: true })
+    expect(panes).toBeUndefined()
+    expect(lit).toBeUndefined()
+    expect(pilasters.instances.length).toBeGreaterThan(0)
+    expect(bands.instances.length).toBeGreaterThan(0)
+  })
+
+  it('puts a stair tower at each end, standing proud of the roofline', () => {
+    const withTowers = addFacade().pilasters.instances.filter(p => p.w === F.tower.width)
+    expect(withTowers).toHaveLength(2)
+    for (const tower of withTowers) {
+      expect(tower.h).toBeCloseTo(24 + F.tower.overshoot)
+      expect(tower.d).toBe(F.tower.depth)
+    }
+    expect(Math.sign(withTowers[0].x)).toBe(-Math.sign(withTowers[1].x))
+    expect(addFacade({ towers: false }).pilasters.instances.filter(p => p.w === F.tower.width))
+      .toHaveLength(0)
+  })
+
+  it('glazes the towers on their own outer face, not inside them', () => {
+    const { panes } = addFacade()
+    const towerX = 58 / 2 - F.tower.width / 2
+    const strips = panes.instances.filter(p => Math.abs(Math.abs(p.x) - towerX) < 1e-9)
+    expect(strips).toHaveLength(2)
+    for (const strip of strips) {
+      expect(strip.z - strip.d / 2).toBeGreaterThanOrEqual(40 + F.tower.depth - 1e-9)
+    }
+  })
+
+  it('shares one box geometry and one material set across every wall', () => {
+    // Eight walls building their own would be eight times the geometry and the
+    // materials in video memory for parts that are all the same box.
+    const { canvas, added } = addFacade()
+    const geometries = new Set(added.map(m => m.geometry))
+    expect(geometries.size).toBe(1)
+    expect(canvas._facadeMaterials()).toBe(canvas._facadeMaterials())
+    expect(canvas._unitBox()).toBe(canvas._unitBox())
+  })
+})
+
+/**
  * The club emblem over every entrance in the stands' back walls, lit by two small
  * dummy lamps. The emblem is drawn into a 2D canvas, which jsdom does not
  * implement — the tests install a recording stub for it.
@@ -947,9 +1181,11 @@ describe('StadiumCanvas entrance emblems', () => {
     const { added } = addEmblem(TALL)
     const arms = added.filter(o => o.geometry?.x === 0.07)
     expect(arms).toHaveLength(2)
+    const mount = CONFIG.stand.backWallThickness + CONFIG.emblemSign.standoff
     for (const arm of arms) {
-      // The arm starts at the wall's outer face and reaches out over the plate.
-      expect(arm.at.z).toBeCloseTo(-(CONFIG.stand.backWallThickness + CONFIG.emblemSign.lamp.arm / 2))
+      // The arm starts at the sign's mounting plane — the wall's outer face plus
+      // the standoff that clears the facade relief — and reaches over the plate.
+      expect(arm.at.z).toBeCloseTo(-(mount + CONFIG.emblemSign.lamp.arm / 2))
     }
   })
 
