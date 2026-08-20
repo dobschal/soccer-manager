@@ -163,23 +163,38 @@ randomFactor = 0.9 bis 1.1
   Reihen sind zentriert und teilen ein Raster aus gleich breiten Slots, damit die hintere Reihe in den
   Luecken der vorderen steht; wenn die Differenz der Reihenlaengen gerade ist, wuerde Zentrieren die
   Reihen uebereinander legen - dann wird die hintere per `.youth-squad-row--offset` um einen halben
-  Slot verschoben.
-- **TA-YTH-32**: Je Spieler Portrait (SVG, nach dem Mounten asynchron nachgeladen), Namensschild und
+  Slot verschoben. Beide Verschiebungen (X und Y) liegen in **einem** `transform` ueber CSS-Variablen,
+  weil eine zweite `transform`-Deklaration die erste ersetzen wuerde.
+- **TA-YTH-32**: Die Reihen ueberlappen sich vertikal (`--youth-row-overlap`): die hintere Reihe wird
+  nach unten in die vordere geschoben, nicht die vordere nach oben - so bleibt die Unterkante des
+  Blocks da, wo das Layout sie hingelegt hat. Weil die Reihen versetzt stehen, ragen die Koepfe der
+  vorderen Reihe zwischen den Namensschildern der hinteren hindurch, die dadurch lesbar bleiben.
+- **TA-YTH-33**: Je Spieler Portrait (SVG, nach dem Mounten asynchron nachgeladen), Namensschild und
   Positions-Badge; unter dem Foto Vereinsname und Saison. Ohne Jugendspieler entfaellt das Foto.
-- **TA-YTH-33**: Passt der Kader nicht in die Breite, scrollt das Foto **horizontal** (beide Reihen
+  Im Foto steht nur `shortenPlayerName()`: erster Buchstabe des Vornamens plus Nachname
+  ("Luciano Mendes" -> "L. Mendes"). Die Spielerliste darunter behaelt die vollen Namen.
+- **TA-YTH-34**: Passt der Kader nicht in die Breite, scrollt das Foto **horizontal** (beide Reihen
   gemeinsam in `.youth-squad-scroller`) - es wird nie eine dritte Reihe umgebrochen.
-- **TA-YTH-34**: Der Hintergrund ist das 3D-Standbild der eigenen Jugendakademie
+- **TA-YTH-35**: Der Hintergrund ist das 3D-Standbild der eigenen Jugendakademie
   (`captureBuilding('youth_academy', {view: BUILDING_BACKDROP_VIEWS.youth_academy})`, 960x400).
   Es kommt aus dem gemeinsamen Cache (`client/lib/buildingStill.js`); nur wenn dort noch keins liegt,
   stellt die Seite einmalig ein unsichtbares `StadiumCanvas` auf, fotografiert und gibt den
-  WebGL-Kontext sofort wieder frei. Bis dahin - und ohne WebGL - bleibt das gemalte Level-Bild
-  (`youth-squad-photo--level-1..3`) der Hintergrund.
+  WebGL-Kontext sofort wieder frei.
+- **TA-YTH-36**: Solange kein Standbild da ist (und ohne WebGL), ist der Rahmen **hellgrau**. Ein
+  gemaltes Ersatzbild gibt es bewusst nicht mehr: es wurde kurz gezeigt und dann ausgetauscht, was wie
+  ein Fehler aussah. Namensschilder und die Bildunterschrift haben deshalb eine eigene dunkle Pille,
+  damit sie auf Grau wie auf dem Standbild lesbar sind.
+- **TA-YTH-37**: Ein bereits gecachtes Standbild steht direkt als `style="background-image: ..."` im
+  Markup, damit auch der erste Frame schon den Hintergrund hat; nur ein frisch fotografiertes wird
+  per `_applyAcademyBackdrop()` nachtraeglich gesetzt (eine Data-URL kann nicht ins Stylesheet).
 
 ### Tests
 
 - Mannschaftsfoto: Platzhalter je Spieler, Reihenaufteilung (2+1 / 3+1 / 3+2 / ...), Versatz-Klasse,
-  Scroller, gemaltes Fallback inkl. Level-Clamping, Reihenfolge Foto -> Liste -> Modus-Karten,
-  leerer Kader
+  Scroller, kein Hintergrundbild ohne Standbild, Kurznamen nur im Foto, Reihenfolge
+  Foto -> Liste -> Modus-Karten, leerer Kader
+- `shortenPlayerName`: Vorname abgekuerzt, Mittelname faellt weg, Ein-Wort-Name unveraendert,
+  Whitespace, Zeichen ausserhalb der BMP als ganzer Initial
 - Akademie-Standbild: Cache-Treffer vermeidet die zweite Szene, sonst Off-Screen-Canvas mit dem
   Backdrop-Ausschnitt; Standbild wird gecacht und der WebGL-Kontext auch dann freigegeben, wenn die
   Szene nie hochkommt

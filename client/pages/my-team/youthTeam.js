@@ -16,6 +16,7 @@ import { euroFormat } from '../../lib/currency.js'
 import { getNextGameDayDate } from '../../util/gameDayTime.js'
 import { renderPlayerImage } from '../../partials/playerImage.js'
 import { renderPositionBadge } from '../../partials/positionBadge.js'
+import { shortenPlayerName } from '../../util/player.js'
 import { StadiumCanvas } from '../../partials/stadiumCanvas.js'
 import { BUILDING_BACKDROP_VIEWS } from '../../partials/clubBuildingsScene.js'
 import { cachedBuildingStill, rememberBuildingStill } from '../../lib/buildingStill.js'
@@ -407,8 +408,13 @@ export class YouthTeamPage extends UIElement {
     // right on top of the front row, so it is nudged over by half a slot.
     const offset = (front.length - back.length) % 2 === 0 ? ' youth-squad-row--offset' : ''
 
+    // A still that is already known goes straight into the markup, so a cached
+    // backdrop is there on the first frame instead of one grey one. Inline
+    // because a data URL cannot live in a stylesheet.
+    const backdrop = this._academyStill ? ` style="background-image: url('${this._academyStill}')"` : ''
+
     return `
-      <div class="youth-squad-photo youth-squad-photo--level-${this._academyImageLevel()} mb-4" data-youth-squad-photo>
+      <div class="youth-squad-photo mb-4"${backdrop} data-youth-squad-photo>
         <div class="youth-squad-scroller">
           <div class="youth-squad-rows">
             ${back.length ? `<div class="youth-squad-row youth-squad-row--back${offset}">${this._renderPhotoRow(back)}</div>` : ''}
@@ -421,17 +427,6 @@ export class YouthTeamPage extends UIElement {
   }
 
   /**
-   * Academy level clamped to the range the painted level images cover. They are
-   * the fallback backdrop until the 3D still arrives — and the only one when
-   * WebGL is unavailable.
-   * @returns {number}
-   * @private
-   */
-  _academyImageLevel () {
-    return Math.min(3, Math.max(1, Math.floor(this.academyLevel || 1)))
-  }
-
-  /**
    * @param {Array<object>} row
    * @returns {string}
    * @private
@@ -441,7 +436,7 @@ export class YouthTeamPage extends UIElement {
       <figure class="youth-squad-member">
         <div class="youth-squad-portrait" data-youth-portrait="${p.id}"></div>
         <figcaption class="youth-squad-caption">
-          <span class="youth-squad-name">${p.name}</span>
+          <span class="youth-squad-name">${shortenPlayerName(p.name)}</span>
           ${renderPositionBadge(p.position)}
         </figcaption>
       </figure>

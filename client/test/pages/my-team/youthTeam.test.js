@@ -485,16 +485,24 @@ describe('YouthTeamPage', () => {
       expect(page.template).toContain('youth-squad-scroller')
     })
 
-    it('falls back to the painted academy artwork of the current level', async () => {
+    it('leaves the backdrop to the stylesheet until a still exists', async () => {
+      // A painted stand-in would flash and then be swapped out — the frame stays
+      // plain until the 3D still is there.
       const page = makePage(players(2), { academyLevel: 3 })
       await page.load()
-      expect(page.template).toContain('youth-squad-photo--level-3')
+      const html = page.template
+      expect(html).not.toContain('youth-academy-level')
+      expect(html).not.toContain('background-image')
     })
 
-    it('clamps the fallback artwork level to what exists', async () => {
-      const page = makePage(players(2), { academyLevel: 7 })
+    it('shows the surname and the first initial only', async () => {
+      const page = makePage([{ ...players(1)[0], name: 'Luciano Maria Mendes' }])
       await page.load()
-      expect(page.template).toContain('youth-squad-photo--level-3')
+      const photo = page._renderSquadPhoto()
+      expect(photo).toContain('L. Mendes')
+      // Only the photo is abbreviated — the roster below it keeps full names.
+      expect(photo).not.toContain('Luciano Maria Mendes')
+      expect(page._renderModeSelectorContent()).toContain('Luciano Maria Mendes')
     })
 
     it('names the club and the season under the photo', async () => {
@@ -519,6 +527,8 @@ describe('YouthTeamPage', () => {
       expect(page._academyCanvas).toBeNull()
       expect(server.getStadium).not.toHaveBeenCalled()
       expect(page.template).not.toContain('youth-academy-still')
+      // Straight into the markup, so a cached backdrop needs no grey first frame.
+      expect(page.template).toContain("background-image: url('data:image/jpeg;base64,cached')")
     })
 
     it('puts up an off-screen canvas when no still exists yet', async () => {
@@ -542,7 +552,8 @@ describe('YouthTeamPage', () => {
       server.getStadium.mockRejectedValue(new Error('offline'))
       await page.load()
       expect(page._academyCanvas).toBeNull()
-      expect(page.template).toContain('youth-squad-photo--level-1')
+      expect(page.template).toContain('youth-squad-photo')
+      expect(page.template).not.toContain('background-image')
     })
 
     it('caches the captured still and gives the WebGL context back', async () => {

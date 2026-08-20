@@ -672,7 +672,7 @@ export const BUILDING_VIEWS = Object.freeze({
  * @type {Readonly<Object<string, {x: number, y: number, z: number, radius: number, elevation: number}>>}
  */
 export const BUILDING_BACKDROP_VIEWS = Object.freeze({
-  youth_academy: {x: -ACADEMY_BUILDING_X, y: 4, z: 0, radius: 10, elevation: 5}
+  youth_academy: {x: -ACADEMY_BUILDING_X, y: 4, z: 0, radius: 16, elevation: 7}
 })
 
 // How much air the portrait keeps around its framed sphere.

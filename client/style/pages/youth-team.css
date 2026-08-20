@@ -106,12 +106,15 @@
    The squad lines up on the pitch in front of the youth academy. The backdrop
    is a still of the club's own academy cropped out of the 3D scene, painted
    onto the element by `_applyAcademyBackdrop` (a data URL cannot live in a
-   stylesheet); the painted level artwork below is the fallback until that still
-   exists — and the only backdrop without WebGL.
+   stylesheet). Until it arrives the frame is plain light grey on purpose: a
+   painted stand-in would show for a moment and then be swapped out, which read
+   as a glitch.
 
    Both rows share one slot grid: a member is exactly one slot wide, so two
    centred rows whose counts differ by one land in each other's gaps, and the
-   `--offset` modifier nudges the back row by half a slot when they don't.
+   `--offset` modifier nudges the back row by half a slot when they don't. The
+   rows also overlap vertically — the back row is pushed down into the front
+   one, which paints over it, the way a real team photo stacks.
    ========================================================================== */
 
 .youth-squad-photo {
@@ -119,6 +122,11 @@
        staggering is derived from these two, so they only exist here. */
     --youth-slot-width: 5.5rem;
     --youth-slot-gap: 0.35rem;
+    /* How far the back row drops into the front one. Pushing the back row down
+       rather than lifting the front one up keeps the block's bottom edge where
+       the layout put it, so no empty strip opens above the caption. */
+    --youth-row-overlap: 1.6rem;
+    --youth-row-shift-x: 0rem;
     position: relative;
     display: flex;
     flex-direction: column;
@@ -131,23 +139,11 @@
     padding: 2rem 0 0.5rem;
     border-radius: 0.75rem;
     overflow: hidden;
-    background-color: #4a8f2a;
+    background-color: #d8dade;
     background-repeat: no-repeat;
     background-size: cover;
     background-position: bottom center;
     box-shadow: inset 0 0 3rem rgba(0, 0, 0, 0.35);
-}
-
-.youth-squad-photo--level-1 {
-    background-image: url("../../assets/youth-academy/youth-academy-level-1.png");
-}
-
-.youth-squad-photo--level-2 {
-    background-image: url("../../assets/youth-academy/youth-academy-level-2.png");
-}
-
-.youth-squad-photo--level-3 {
-    background-image: url("../../assets/youth-academy/youth-academy-level-3.png");
 }
 
 /* A big squad is wider than the frame — it scrolls sideways instead of wrapping
@@ -165,7 +161,9 @@
 .youth-squad-rows {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    /* No gap — the rows are meant to touch, and `--youth-row-overlap` then
+       pushes them into each other. */
+    gap: 0;
     width: max-content;
     margin-inline: auto;
 }
@@ -178,8 +176,14 @@
     gap: var(--youth-slot-gap);
 }
 
+/* One transform for both shifts: a second `transform` declaration would
+   replace the first rather than add to it. */
+.youth-squad-row--back {
+    transform: translate(var(--youth-row-shift-x), var(--youth-row-overlap));
+}
+
 .youth-squad-row--offset {
-    transform: translateX(calc((var(--youth-slot-width) + var(--youth-slot-gap)) / 2));
+    --youth-row-shift-x: calc((var(--youth-slot-width) + var(--youth-slot-gap)) / 2);
 }
 
 .youth-squad-member {
@@ -225,11 +229,17 @@
 }
 
 .youth-squad-photo-caption {
+    /* Same dark pill as the nameplates: the frame is light grey until the still
+       arrives, and white-on-grey is unreadable. */
+    width: fit-content;
+    margin-inline: auto;
+    padding: 0.1rem 0.6rem;
+    border-radius: 0.5rem;
+    background-color: rgba(0, 0, 0, 0.4);
     text-align: center;
     font-size: 0.8rem;
     font-style: italic;
-    color: rgba(255, 255, 255, 0.9);
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+    color: rgba(255, 255, 255, 0.95);
 }
 
 /* The canvas the academy still is rendered on: it needs a real size for WebGL,
