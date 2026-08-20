@@ -580,6 +580,7 @@ export default {
 
   // Youth Team
   'youthTeam.title': 'Youth Team',
+  'youthTeam.squadPhotoCaption': 'Youth squad · Season {season}',
   'youthTeam.trainingMode': 'Training Mode',
   'youthTeam.trainingModeDesc': 'Choose what your youth team should do for the next game day:',
   'youthTeam.training': 'Training',

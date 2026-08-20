@@ -155,9 +155,17 @@ randomFactor = 0.9 bis 1.1
 - **TA-YTH-24**: Aktionen pro Zeile: Befoerdern, **Verkaufen** — der Entlassen-Button wurde mit #524 entfernt,
   weil der Verkauf ihn vollstaendig ersetzt.
 - **TA-YTH-22**: Bestaetigungsdialoge vor Befoerderung und Verkauf.
+- **TA-YTH-30**: Seitenaufbau (#563): Titel, **Mannschaftsfoto**, Spielerliste, Alterswarnung,
+  Trainingsmodus-Karten. Die Modus-Karten stehen bewusst unter der Liste.
+- **TA-YTH-31**: Das Mannschaftsfoto zeigt alle Jugendspieler in 2 bis 3 Reihen (hintere Reihe zuerst,
+  nie kleiner als die davor) vor der Akademie-Grafik des aktuellen Ausbaulevels (1-3), je Spieler
+  Portrait, Name und Positions-Badge, darunter Vereinsname und Saison. Ohne Jugendspieler entfaellt
+  das Foto komplett. Die Portraits sind SVGs und werden nach dem Mounten asynchron nachgeladen.
 
 ### Tests
 
+- Mannschaftsfoto: Platzhalter je Spieler, Reihenaufteilung, Akademie-Level-Klasse (inkl. Clamping),
+  Reihenfolge Foto -> Liste -> Modus-Karten, leerer Kader
 - Training-Effekte auf Level, Moral und Fitness
 - Individueller `training_mode` schlaegt den Team-Fallback; Spieler ohne Modus nutzen den Fallback
 - Slot-Kapazitaet pro Modus je Akademie-Level; volle Modi werden abgelehnt

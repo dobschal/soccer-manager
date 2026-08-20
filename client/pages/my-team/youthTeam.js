@@ -14,6 +14,8 @@ import { TRAINING_MODES, MAX_SLOTS_PER_MODE } from './youthTrainingModes.js'
 import { YouthPlayerRow } from './youthPlayerRow.js'
 import { euroFormat } from '../../lib/currency.js'
 import { getNextGameDayDate } from '../../util/gameDayTime.js'
+import { renderPlayerImage } from '../../partials/playerImage.js'
+import { renderPositionBadge } from '../../partials/positionBadge.js'
 
 export class YouthTeamPage extends UIElement {
   /**
@@ -49,9 +51,7 @@ export class YouthTeamPage extends UIElement {
       <div>
         <h3>${t('youthTeam.title')} ${wikiInfoIcon('youth-players')}</h3>
 
-        <div class="mb-4" id="${this._modeSelectorContainerId}">
-          ${this._renderModeSelectorContent()}
-        </div>
+        ${this._renderSquadPhoto()}
 
         ${this._renderYouthPlayerTable()}
 
@@ -60,6 +60,10 @@ export class YouthTeamPage extends UIElement {
           <i class="fa fa-exclamation-triangle"></i> ${t('youthTeam.retirementWarning')}
         </div>`
     : ''}
+
+        <div class="mt-4" id="${this._modeSelectorContainerId}">
+          ${this._renderModeSelectorContent()}
+        </div>
       </div>
     `
   }
@@ -95,7 +99,16 @@ export class YouthTeamPage extends UIElement {
    */
   onMounted () {
     this._startTimer()
+    this._loadSquadPhotoImages()
     void showTutorialIfNeeded('youth', this)
+  }
+  /**
+   * A promote/sell re-renders the whole page, so the squad photo needs its
+   * portraits filled in again.
+   * @returns {void}
+   */
+  onUpdate () {
+    this._loadSquadPhotoImages()
   }
   /**
    * Called when component is removed from DOM
@@ -357,6 +370,109 @@ export class YouthTeamPage extends UIElement {
    */
   _hasPlayerAtAge (age) {
     return Array.isArray(this.youthPlayers) && this.youthPlayers.some(p => p.age === age)
+  }
+
+  /**
+   * How many portraits fit into the widest row of the squad photo before the
+   * next row is started. Kept at three so the rows still line up on a phone.
+   */
+  static SQUAD_PHOTO_MAX_ROWS = 3
+
+  /** Portrait width in px. The SVG is sized in JS, so this cannot be CSS. */
+  static SQUAD_PHOTO_PORTRAIT_SIZE = 84
+
+  /**
+   * The youth squad as a team photo in front of the academy: portraits lined up
+   * in two or three rows on the pitch, each with name and position (#563).
+   *
+   * Portraits are SVGs loaded over the network, so the markup only carries
+   * placeholders here and `_loadSquadPhotoImages` fills them once the page is
+   * in the DOM — the same approach the transfer market uses.
+   * @returns {string}
+   * @private
+   */
+  _renderSquadPhoto () {
+    const players = this.youthPlayers || []
+    if (players.length === 0) return ''
+
+    const rows = this._splitIntoPhotoRows(players).map(row => `
+      <div class="youth-squad-row">
+        ${row.map(p => `
+          <figure class="youth-squad-member">
+            <div class="youth-squad-portrait" data-youth-portrait="${p.id}"></div>
+            <figcaption class="youth-squad-caption">
+              <span class="youth-squad-name">${p.name}</span>
+              ${renderPositionBadge(p.position)}
+            </figcaption>
+          </figure>
+        `).join('')}
+      </div>
+    `).join('')
+
+    const teamName = this.parent?.data?.team?.name
+    const caption = [teamName, t('youthTeam.squadPhotoCaption', { season: (this.season ?? 0) + 1 })]
+      .filter(Boolean)
+      .join(' · ')
+
+    return `
+      <div class="youth-squad-photo youth-squad-photo--level-${this._academyImageLevel()} mb-4">
+        <div class="youth-squad-rows">${rows}</div>
+        <div class="youth-squad-photo-caption">${caption}</div>
+      </div>
+    `
+  }
+
+  /**
+   * Academy level clamped to the range the backdrop images cover.
+   * @returns {number}
+   * @private
+   */
+  _academyImageLevel () {
+    return Math.min(3, Math.max(1, Math.floor(this.academyLevel || 1)))
+  }
+
+  /**
+   * Split the squad into photo rows, back row first. Up to six players stand in
+   * two rows, everyone beyond that in three, and a row never has fewer players
+   * than the row behind it — which is how a team photo is arranged.
+   * @param {Array<object>} players
+   * @returns {Array<Array<object>>}
+   * @private
+   */
+  _splitIntoPhotoRows (players) {
+    const rowCount = players.length <= 1
+      ? 1
+      : players.length <= 6 ? 2 : YouthTeamPage.SQUAD_PHOTO_MAX_ROWS
+    const rows = []
+    let index = 0
+    for (let row = 0; row < rowCount; row++) {
+      const size = Math.ceil((players.length - index) / (rowCount - row))
+      rows.push(players.slice(index, index + size))
+      index += size
+    }
+    return rows
+  }
+
+  /**
+   * Fill the squad photo's portrait placeholders. The shirt colour and emblem
+   * come from the A-team the youth players belong to; without a parent page to
+   * ask, `renderPlayerImage` falls back to a neutral grey shirt.
+   * @returns {void}
+   * @private
+   */
+  _loadSquadPhotoImages () {
+    if (!this._isMounted) return
+    const team = this.parent?.data?.team ?? null
+    for (const player of this.youthPlayers || []) {
+      const selector = `${this._elementQuery} [data-youth-portrait="${player.id}"]`
+      const placeholder = document.querySelector(selector)
+      if (!placeholder || placeholder.dataset.loaded) continue
+      placeholder.dataset.loaded = '1'
+      renderPlayerImage(player, team, YouthTeamPage.SQUAD_PHOTO_PORTRAIT_SIZE).then(image => {
+        const target = document.querySelector(selector)
+        if (target) target.innerHTML = image
+      })
+    }
   }
 
   /**

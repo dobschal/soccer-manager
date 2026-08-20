@@ -358,4 +358,92 @@ describe('YouthTeamPage', () => {
       expect(page.template).not.toContain('youthTeam.retirementWarning')
     })
   })
+
+  describe('squad photo (#563)', () => {
+    function makePage (youthPlayers, { academyLevel = 1, team = { id: 4, name: 'Test FC' } } = {}) {
+      server.getYouthTeam.mockResolvedValue({
+        youthPlayers,
+        trainingMode: 'rest',
+        academyLevel,
+        season: 6
+      })
+      return new YouthTeamPage({ load: vi.fn(), update: vi.fn(), data: { team } })
+    }
+
+    const players = count => Array.from({ length: count }, (_, i) => ({
+      id: i + 1,
+      name: `Youth ${i + 1}`,
+      position: 'CM',
+      age: 16,
+      level: 15,
+      moral: 0.8,
+      fitness: 0.7
+    }))
+
+    it('renders a portrait placeholder and a name per youth player', async () => {
+      const page = makePage(players(4))
+      await page.load()
+      const html = page.template
+
+      for (let id = 1; id <= 4; id++) {
+        expect(html).toContain(`data-youth-portrait="${id}"`)
+        expect(html).toContain(`Youth ${id}`)
+      }
+    })
+
+    it('puts the photo above the player list and the mode cards below it', async () => {
+      const page = makePage(players(3))
+      await page.load()
+      const html = page.template
+
+      // The player list renders as a nested UIElement, so its spot in the
+      // template is the `<template>` placeholder.
+      const listAt = html.indexOf('<template')
+      expect(listAt).toBeGreaterThan(-1)
+      expect(html.indexOf('youth-squad-photo')).toBeLessThan(listAt)
+      expect(listAt).toBeLessThan(html.indexOf('youth-mode-card'))
+    })
+
+    it('uses the academy artwork of the current level as backdrop', async () => {
+      const page = makePage(players(2), { academyLevel: 3 })
+      await page.load()
+      expect(page.template).toContain('youth-squad-photo--level-3')
+    })
+
+    it('clamps the backdrop level to the artwork that exists', async () => {
+      const page = makePage(players(2), { academyLevel: 7 })
+      await page.load()
+      expect(page.template).toContain('youth-squad-photo--level-3')
+    })
+
+    it('names the club and the season under the photo', async () => {
+      const page = makePage(players(2))
+      await page.load()
+      expect(page.template).toContain('Test FC · youthTeam.squadPhotoCaption')
+    })
+
+    it('renders no photo at all for an empty youth team', async () => {
+      const page = makePage([])
+      await page.load()
+      expect(page.template).not.toContain('youth-squad-photo')
+    })
+
+    it('lines the squad up in two rows up to six players and three above that', async () => {
+      const page = makePage(players(1))
+      await page.load()
+
+      expect(page._splitIntoPhotoRows(players(1)).map(r => r.length)).toEqual([1])
+      expect(page._splitIntoPhotoRows(players(3)).map(r => r.length)).toEqual([2, 1])
+      expect(page._splitIntoPhotoRows(players(6)).map(r => r.length)).toEqual([3, 3])
+      expect(page._splitIntoPhotoRows(players(8)).map(r => r.length)).toEqual([3, 3, 2])
+      expect(page._splitIntoPhotoRows(players(11)).map(r => r.length)).toEqual([4, 4, 3])
+    })
+
+    it('keeps every player in exactly one row', async () => {
+      const page = makePage(players(9))
+      await page.load()
+      const ids = page._splitIntoPhotoRows(players(9)).flat().map(p => p.id)
+      expect(ids).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9])
+    })
+  })
 })

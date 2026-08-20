@@ -1546,6 +1546,8 @@ Sieh dir die Liste regelmäßig an, damit du nie mit leerer Bank oder müder Auf
       subtitle: 'Develop young talents in your academy',
       text: `Your Youth Academy produces young talents you can develop and later promote to your senior squad.
 
+On the Youth Team page the whole squad lines up for a team photo in front of your academy, the player list follows below it, and the training-mode cards sit at the bottom of the page.
+
 Youth attributes:
 • Level – their current strength (shown as a decimal value).
 • Talent – their growth potential. This is hidden, so you have to judge a youngster by how fast they actually improve.
@@ -1574,6 +1576,8 @@ The Youth Academy building (see Buildings) determines how many and how strong th
       title: 'Jugendspieler',
       subtitle: 'Entwickle junge Talente in deiner Akademie',
       text: `Deine Jugendakademie bringt junge Talente hervor, die du entwickeln und später in deinen Profikader holen kannst.
+
+Auf der Seite Jugendmannschaft stellt sich der komplette Kader zum Mannschaftsfoto vor deiner Akademie auf, darunter folgt die Spielerliste, und die Karten für die Trainingsmodi stehen am Ende der Seite.
 
 Eigenschaften der Jugendspieler:
 • Level – die aktuelle Stärke (als Dezimalwert angezeigt).
